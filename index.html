@@ -29,12 +29,386 @@
                 linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
             background-size: 30px 30px;
+            overflow-x: hidden;
         }
 
         .container {
             width: 100%;
             max-width: 900px;
             border: 2px solid var(--border-color);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.05);
+            background: rgba(9, 10, 15, 0.9);
+            position: relative;
+            padding: 30px;
+            box-sizing: border-box;
+            /* 容器外框的呼吸燈特效 */
+            animation: pulseGlow 4s infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            from { box-shadow: 0 0 10px rgba(0, 243, 255, 0.05); }
+            to { box-shadow: 0 0 25px rgba(0, 243, 255, 0.15); }
+        }
+
+        /* 系統載入動畫模組 */
+        .sys-fade-in {
+            opacity: 0;
+            transform: translateY(15px);
+            animation: sysBoot 0.6s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+        }
+
+        .delay-1 { animation-delay: 0.2s; }
+        .delay-2 { animation-delay: 0.4s; }
+        .delay-3 { animation-delay: 0.6s; }
+        .delay-4 { animation-delay: 0.8s; }
+
+        @keyframes sysBoot {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 標題與雜訊特效 */
+        .header {
+            border-bottom: 2px solid var(--main-cyan);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .title {
+            font-size: 1.5em;
+            color: var(--main-cyan);
+            font-weight: bold;
+            text-transform: uppercase;
+            position: relative;
+            display: inline-block;
+        }
+
+        .title::after {
+            content: "V8_PROJECT_ADMIN_UNIT";
+            position: absolute;
+            left: 2px;
+            text-shadow: -1px 0 red;
+            top: 0;
+            color: var(--main-cyan);
+            background: var(--bg-color);
+            overflow: hidden;
+            animation: glitch 3s infinite linear alternate-reverse;
+        }
+
+        .cursor-blink {
+            animation: blinker 1s step-end infinite;
+            color: var(--main-cyan);
+            font-weight: bold;
+        }
+
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+
+        @keyframes glitch {
+            0% { clip: rect(2px, 9999px, 8px, 0); }
+            10% { clip: rect(15px, 9999px, 20px, 0); }
+            20% { clip: rect(5px, 9999px, 12px, 0); }
+            30% { clip: rect(25px, 9999px, 30px, 0); }
+            40% { clip: rect(10px, 9999px, 15px, 0); }
+            50% { clip: rect(30px, 9999px, 35px, 0); }
+            60%, 100% { clip: rect(0, 0, 0, 0); } /* 讓雜訊偶爾停下，更自然 */
+        }
+
+        /* 主內容佈局 */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        /* 左側：頭像與基本資訊 */
+        .avatar-box {
+            position: relative;
+            width: 100%;
+            height: 250px;
+            border: 1px solid var(--main-cyan);
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 243, 255, 0.05),
+                rgba(0, 243, 255, 0.05) 1px,
+                transparent 1px,
+                transparent 4px
+            );
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .avatar-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(100%) contrast(150%) sepia(50%) hue-rotate(130deg);
+            opacity: 0.8;
+        }
+
+        /* 動態掃描線特效 */
+        .avatar-box::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: rgba(0, 243, 255, 0.6);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.8);
+            opacity: 0.5;
+            animation: scanline 3s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-10px); }
+            100% { transform: translateY(260px); }
+        }
+
+        .avatar-box::before {
+            content: "NO_IMAGE_DATA / SCANLINES_ACTIVE";
+            color: var(--main-cyan);
+            opacity: 0.5;
+            position: absolute;
+        }
+
+        .sys-tag {
+            background: var(--main-cyan);
+            color: var(--bg-color);
+            padding: 5px 15px;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 15px;
+            text-shadow: none;
+        }
+
+        /* 右側：狀態條 */
+        .stat-group {
+            margin-bottom: 20px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: var(--text-gray);
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 能量條動態載入 */
+        .stat-bar-fill {
+            width: 0%; /* 起始為 0 */
+            height: 100%;
+            background: var(--main-cyan);
+            box-shadow: 0 0 10px var(--main-cyan);
+            animation: fillBar 1.2s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+            animation-delay: 1.2s; /* 等待系統載入完畢再跑進度條 */
+        }
+
+        .fill-red {
+            background: var(--alert-red);
+            box-shadow: 0 0 10px var(--alert-red);
+        }
+
+        @keyframes fillBar {
+            to { width: var(--target-width); }
+        }
+
+        /* 下方雷達圖與規則區 */
+        .bottom-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 40px;
+            border-top: 1px dashed rgba(0, 243, 255, 0.3);
+            padding-top: 30px;
+        }
+
+        .radar-container {
+            position: relative;
+            width: 100%;
+            max-height: 250px;
+        }
+
+        .rules-box {
+            background: rgba(0, 243, 255, 0.05);
+            border-left: 3px solid var(--main-cyan);
+            padding: 15px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        /* 規則區塊懸浮特效 */
+        .rules-box:hover {
+            background: rgba(0, 243, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2) inset;
+        }
+
+        .rules-title {
+            color: var(--main-cyan);
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .rules-box ul {
+            list-style-type: square;
+            padding-left: 20px;
+            color: var(--text-gray);
+            font-size: 0.9em;
+        }
+
+        .rules-box li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .highlight-text {
+            color: #fff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container sys-fade-in">
+        <!-- 標題區 -->
+        <div class="header sys-fade-in delay-1">
+            <div>
+                <span class="title">V8_PROJECT_ADMIN_UNIT</span><span class="cursor-blink">_</span>
+            </div>
+            <div style="color: var(--text-gray); font-size: 0.8em;">STATUS: ONLINE // UPTIME: <span id="uptime">00:00:00</span></div>
+        </div>
+
+        <div class="grid-layout">
+            <!-- 左側：頭像與職業 -->
+            <div class="sys-fade-in delay-2">
+                <div class="avatar-box">
+                    <!-- 若要放照片，將下一行的註解拿掉，並確保圖片檔名為 profile.jpg -->
+                    <!-- <img src="profile.jpg" alt="Admin Profile"> -->
+                </div>
+                <div class="sys-tag">System_Admin (Lv.22)</div>
+                <p style="color: var(--text-gray); font-size: 0.9em; margin-top: 10px; line-height: 1.6;">
+                    CLASS: [雙棲節點] 資訊工程 / 地球科學<br>
+                    TARGET: AI & 編譯系統最佳化<br>
+                    LOC: Wenshan Dist, Taipei
+                </p>
+            </div>
+
+            <!-- 右側：能量與技能條 (使用 --target-width 變數觸發動畫) -->
+            <div class="sys-fade-in delay-3">
+                <div class="stat-group">
+                    <div class="stat-label"><span>[Explore] 機車獨旅 / 露營野炊.exe</span><span>90%</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="--target-width: 90%;"></div></div>
+                </div>
+
+                <div class="stat-group">
+                    <div class="stat-label"><span>[Sim] 滿意工廠產線 / 傳說對決</span><span>85%</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="--target-width: 85%;"></div></div>
+                </div>
+
+                <div class="stat-group">
+                    <div class="stat-label"><span>[Core] C_Python_C++_編譯線程</span><span>95%</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="--target-width: 95%;"></div></div>
+                </div>
+
+                <div class="stat-group">
+                    <div class="stat-label"><span>[System_Feature] 高耗能社交排斥</span><span>MAX</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill fill-red" style="--target-width: 100%;"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 下方：雷達圖與系統規則 -->
+        <div class="bottom-layout sys-fade-in delay-4">
+            <div class="radar-container">
+                <canvas id="radarChart"></canvas>
+            </div>
+            
+            <div class="rules-box">
+                <div class="rules-title">[ // ] SYSTEM_AGREEMENTS_AND_REWARDS</div>
+                <ul>
+                    <li><span class="highlight-text">除錯協定：</span>發問前請先重讀題目與範例。指出具體卡關的節點，系統即會協助排除錯誤。</li>
+                    <li><span class="highlight-text">最佳化運轉：</span>不需要完美，但要求專注。達成每日最低進度標準，即視為運轉成功。</li>
+                    <li><span class="highlight-text">資源解鎖：</span>當日 Node 任務進度條滿載，即解鎖待機模式，開放桌遊連線或個人自由時間。</li>
+                    <li><span class="highlight-text">共同默契：</span>維護系統和平，不干擾他人運作。在底線之內，擁有絕對自由。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 設定右上角動態計時器 (Uptime)
+        let seconds = 0;
+        setInterval(() => {
+            seconds++;
+            const hrs = String(Math.floor(seconds / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+            const secs = String(seconds % 60).padStart(2, '0');
+            document.getElementById('uptime').textContent = `${hrs}:${mins}:${secs}`;
+        }, 1000);
+
+        // 初始化雷達圖 (Chart.js 本身自帶展開動畫，配合 delay-4 會剛好在最後畫出)
+        Chart.defaults.color = '#a0aab8';
+        Chart.defaults.font.family = 'Consolas, monospace';
+
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        const radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['邏輯重構', '除錯能力', '中二耐性', '社交能耗', '國數理解', '全局規劃'],
+                datasets: [{
+                    label: 'Admin_Stats',
+                    data: [95, 100, 60, 10, 90, 85],
+                    backgroundColor: 'rgba(0, 243, 255, 0.2)',
+                    borderColor: '#00f3ff',
+                    pointBackgroundColor: '#00f3ff',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#00f3ff',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 2000,
+                    easing: 'easeOutQuart'
+                },
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        pointLabels: {
+                            color: '#00f3ff',
+                            font: { size: 12, weight: 'bold' }
+                        },
+                        ticks: { display: false, min: 0, max: 100 }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    </script>
+</body>
+</html>            border: 2px solid var(--border-color);
             box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
             background: rgba(9, 10, 15, 0.9);
             position: relative;
