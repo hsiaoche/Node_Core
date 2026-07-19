@@ -107,7 +107,6 @@
             overflow: hidden;
         }
 
-        /* 若你要放自己的照片，可以修改這個 img 標籤的 src，並加上濾鏡 */
         .avatar-box img {
             width: 100%;
             height: 100%;
@@ -162,6 +161,11 @@
             background: var(--alert-red);
             box-shadow: 0 0 10px var(--alert-red);
         }
+        
+        .fill-green {
+            background: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
+        }
 
         /* 下方雷達圖與規則區 */
         .bottom-layout {
@@ -180,13 +184,13 @@
         }
 
         .rules-box {
-            background: rgba(255, 0, 60, 0.05);
-            border-left: 3px solid var(--alert-red);
+            background: rgba(0, 243, 255, 0.05);
+            border-left: 3px solid var(--main-cyan);
             padding: 15px;
         }
 
         .rules-title {
-            color: var(--alert-red);
+            color: var(--main-cyan);
             font-weight: bold;
             margin-bottom: 10px;
         }
@@ -199,11 +203,13 @@
         }
 
         .rules-box li {
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            line-height: 1.5;
         }
         
         .highlight-text {
             color: #fff;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -220,7 +226,7 @@
             <!-- 左側：頭像與職業 -->
             <div>
                 <div class="avatar-box">
-                    <!-- 如果要放你的照片，取消註解下一行，把照片放在同一個資料夾命名為 profile.jpg -->
+                    <!-- 若要放照片，將下一行的註解拿掉，並確保圖片檔名為 profile.jpg -->
                     <!-- <img src="profile.jpg" alt="Admin Profile"> -->
                 </div>
                 <div class="sys-tag">System_Admin (Lv.22)</div>
@@ -234,27 +240,22 @@
             <!-- 右側：能量與技能條 -->
             <div>
                 <div class="stat-group">
-                    <div class="stat-label"><span>[Fuel] 脆皮五花肉.exe</span><span>80%</span></div>
-                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 80%;"></div></div>
-                </div>
-                
-                <div class="stat-group">
-                    <div class="stat-label"><span>[Map] 無目的機車漫遊.sh</span><span>100%</span></div>
-                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 100%;"></div></div>
-                </div>
-
-                <div class="stat-group">
-                    <div class="stat-label"><span>[Core] C_Python_C++_編譯線程</span><span>90%</span></div>
+                    <div class="stat-label"><span>[Explore] 機車獨旅 / 露營野炊.exe</span><span>90%</span></div>
                     <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 90%;"></div></div>
                 </div>
 
                 <div class="stat-group">
-                    <div class="stat-label"><span>[Sim] 滿意工廠產線 / 克蘇魯模組</span><span>75%</span></div>
-                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 75%;"></div></div>
+                    <div class="stat-label"><span>[Sim] 滿意工廠產線 / 傳說對決</span><span>85%</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 85%;"></div></div>
                 </div>
 
                 <div class="stat-group">
-                    <div class="stat-label"><span>[System_Warning] 高耗能社交排斥</span><span>MAX</span></div>
+                    <div class="stat-label"><span>[Core] C_Python_C++_編譯線程</span><span>95%</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 95%;"></div></div>
+                </div>
+
+                <div class="stat-group">
+                    <div class="stat-label"><span>[System_Feature] 高耗能社交排斥</span><span>MAX</span></div>
                     <div class="stat-bar-bg"><div class="stat-bar-fill fill-red" style="width: 100%;"></div></div>
                 </div>
             </div>
@@ -267,19 +268,18 @@
             </div>
             
             <div class="rules-box">
-                <div class="rules-title">[ ! ] SYSTEM_BOUNDARIES</div>
+                <div class="rules-title">[ // ] SYSTEM_AGREEMENTS_AND_REWARDS</div>
                 <ul>
-                    <li><span class="highlight-text">防呆機制：</span>提問前，必須完成自行重讀與課本檢索。指出具體 Error 行數才能舉手。</li>
-                    <li><span class="highlight-text">社交隔離：</span>完成當日 Node 任務進度條，即解鎖待機模式。互不干涉。</li>
-                    <li><span class="highlight-text">資源最佳化：</span>本系統不提供「完整最佳化解答」，只提供「優化方向與底層邏輯」。</li>
-                    <li><span class="highlight-text">底線警告：</span>防衛底線分明，嚴禁破壞系統核心秩序。</li>
+                    <li><span class="highlight-text">除錯協定：</span>發問前請先重讀題目與範例。指出具體卡關的節點，系統即會協助排除錯誤。</li>
+                    <li><span class="highlight-text">最佳化運轉：</span>不需要完美，但要求專注。達成每日最低進度標準，即視為運轉成功。</li>
+                    <li><span class="highlight-text">資源解鎖：</span>當日 Node 任務進度條滿載，即解鎖待機模式，開放桌遊連線或個人自由時間。</li>
+                    <li><span class="highlight-text">共同默契：</span>維護系統和平，不干擾他人運作。在底線之內，擁有絕對自由。</li>
                 </ul>
             </div>
         </div>
     </div>
 
     <script>
-        // 設定 Chart.js 全局字體顏色
         Chart.defaults.color = '#a0aab8';
         Chart.defaults.font.family = 'Consolas, monospace';
 
@@ -290,7 +290,7 @@
                 labels: ['邏輯重構', '除錯能力', '中二耐性', '社交能耗', '國數理解', '全局規劃'],
                 datasets: [{
                     label: 'Admin_Stats',
-                    data: [95, 100, 60, 10, 90, 85], // 社交能耗極低，除錯極高
+                    data: [95, 100, 60, 10, 90, 85],
                     backgroundColor: 'rgba(0, 243, 255, 0.2)',
                     borderColor: '#00f3ff',
                     pointBackgroundColor: '#00f3ff',
@@ -311,11 +311,11 @@
                             color: '#00f3ff',
                             font: { size: 12, weight: 'bold' }
                         },
-                        ticks: { display: false, min: 0, max: 100 } // 隱藏數值標籤
+                        ticks: { display: false, min: 0, max: 100 }
                     }
                 },
                 plugins: {
-                    legend: { display: false } // 隱藏圖例
+                    legend: { display: false }
                 }
             }
         });
