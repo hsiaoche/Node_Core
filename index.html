@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V8_Project_Admin_Terminal</title>
+    <style>
+        body {
+            background-color: #050505;
+            color: #00ff41;
+            font-family: 'Consolas', 'Courier New', monospace;
+            padding: 5vw;
+            margin: 0;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        #terminal {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .typing-text {
+            display: none; /* 由 JS 控制顯示 */
+            margin-bottom: 10px;
+        }
+
+        .prompt {
+            color: #00ff41;
+            font-weight: bold;
+        }
+
+        .highlight {
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #ff3333;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 1.2em;
+            background-color: #00ff41;
+            vertical-align: middle;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            color: #00ff41;
+        }
+
+        td {
+            padding: 5px 0;
+            vertical-align: top;
+        }
+
+        .col-key {
+            width: 30%;
+            font-weight: bold;
+            color: #aaaaaa;
+        }
+        
+        .section-title {
+            margin-top: 30px;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #00ff41;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+<div id="terminal">
+    <div id="output"></div>
+    <span class="cursor" id="cursor"></span>
+</div>
+
+<script>
+    const lines = [
+        "System Boot... OK",
+        "Loading V8_Node_Reconstruction_Project...",
+        "Establishing Secure Connection...",
+        "Access Granted. Welcome, System Admin.",
+        "<br>",
+        "<span class='prompt'>admin@V8-Server:~$</span> cat /usr/profiles/instructor.json",
+        "<br>",
+        "<span class='highlight'>[ INITIALIZING ADMIN PARAMETERS ]</span>",
+        "===============================================",
+        "<table>",
+        "<tr><td class='col-key'>Class</td><td>[雙棲節點] 資訊工程 / 地球科學</td></tr>",
+        "<tr><td class='col-key'>Target_Node</td><td>國立陽明交通大學 (AI & 編譯系統)</td></tr>",
+        "<tr><td class='col-key'>Core_Stack</td><td>C, Python, C++, 底層邏輯重構</td></tr>",
+        "<tr><td class='col-key'>Fuel_Source</td><td>脆皮五花肉、黑咖啡、機車無目的漫遊</td></tr>",
+        "<tr><td class='col-key'>Sim_Environments</td><td>滿意工廠(產線最佳化)、Minecraft、克蘇魯神話世界</td></tr>",
+        "</table>",
+        "<br>",
+        "<span class='highlight'>[ SYSTEM RULES & BOUNDARIES ]</span>",
+        "===============================================",
+        "<span class='prompt'>> Rule 1:</span> <span class='error'>[Error Prevention]</span> 發問前，請先查閱大腦暫存區與課本日誌。",
+        "<span class='prompt'>> Rule 2:</span> <span class='error'>[Social Energy Shield]</span> 拒絕高耗能無效社交。任務達標，互不干涉。",
+        "<span class='prompt'>> Rule 3:</span> <span class='error'>[Efficiency Output]</span> 追求同等時間內 75% 以上的最佳化運轉。",
+        "<br>",
+        "<span class='prompt'>admin@V8-Server:~$</span> ./start_20_day_debugging.sh",
+        "Initializing core protocols for Node01 - Node07...",
+        "Awaiting user input..."
+    ];
+
+    let currentLine = 0;
+    const outputDiv = document.getElementById('output');
+
+    function typeLine() {
+        if (currentLine < lines.length) {
+            const lineElement = document.createElement('div');
+            lineElement.className = 'typing-text';
+            lineElement.innerHTML = lines[currentLine];
+            lineElement.style.display = 'block';
+            outputDiv.appendChild(lineElement);
+            
+            // 控制打字速度，最後幾行顯示快一點
+            let delay = (currentLine < 5) ? 300 : 100; 
+            currentLine++;
+            setTimeout(typeLine, delay);
+        }
+    }
+
+    // 啟動動畫
+    window.onload = () => {
+        setTimeout(typeLine, 500);
+    };
+</script>
+
+</body>
+</html>
