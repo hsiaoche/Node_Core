@@ -3,47 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V8_Project_Admin_Terminal</title>
+    <title>V8_Summer_Node_Reconstruction_Project</title>
     <style>
+        /* 現代 IDE 暗色主題色票 (類似 One Dark Pro / Dracula) */
+        :root {
+            --bg-base: #181a1f;
+            --bg-window: #282c34;
+            --text-main: #abb2bf;
+            --keyword-purple: #c678dd;
+            --string-green: #98c379;
+            --func-blue: #61afef;
+            --error-red: #e06c75;
+            --warn-yellow: #e5c07b;
+        }
+
         body {
-            background-color: #050505;
-            color: #00ff41;
-            font-family: 'Consolas', 'Courier New', monospace;
-            padding: 5vw;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            /* 導入現代程式碼字體 */
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            padding: 5vh 5vw;
             margin: 0;
-            line-height: 1.6;
-            overflow-x: hidden;
+            line-height: 1.7;
+            display: flex;
+            justify-content: center;
         }
         
-        #terminal {
-            max-width: 800px;
+        #terminal-window {
+            width: 100%;
+            max-width: 900px;
+            background-color: var(--bg-window);
+            border-radius: 10px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        /* 模擬 macOS 視窗頂部標題列 */
+        .window-header {
+            background-color: #21252b;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #181a1f;
+        }
+
+        .dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .dot-red { background-color: #ff5f56; }
+        .dot-yellow { background-color: #ffbd2e; }
+        .dot-green { background-color: #27c93f; }
+
+        .window-title {
+            color: #5c6370;
+            font-size: 14px;
             margin: 0 auto;
+            transform: translateX(-20px); /* 校正視覺置中 */
+        }
+
+        #output-content {
+            padding: 25px;
         }
 
         .typing-text {
-            display: none; /* 由 JS 控制顯示 */
-            margin-bottom: 10px;
+            display: none;
+            margin-bottom: 8px;
         }
 
-        .prompt {
-            color: #00ff41;
-            font-weight: bold;
-        }
-
-        .highlight {
-            color: #ffffff;
-            font-weight: bold;
-        }
-
-        .error {
-            color: #ff3333;
-        }
+        /* 語法高亮設定 */
+        .prompt { color: var(--keyword-purple); font-weight: bold; }
+        .highlight { color: var(--warn-yellow); font-weight: bold; }
+        .error { color: var(--error-red); }
+        .string { color: var(--string-green); }
+        .func { color: var(--func-blue); }
 
         .cursor {
             display: inline-block;
-            width: 10px;
+            width: 8px;
             height: 1.2em;
-            background-color: #00ff41;
+            background-color: var(--func-blue);
             vertical-align: middle;
             animation: blink 1s step-end infinite;
         }
@@ -56,62 +101,61 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
-            color: #00ff41;
+            margin: 15px 0 25px 0;
         }
 
         td {
-            padding: 5px 0;
+            padding: 6px 0;
             vertical-align: top;
         }
 
         .col-key {
-            width: 30%;
-            font-weight: bold;
-            color: #aaaaaa;
-        }
-        
-        .section-title {
-            margin-top: 30px;
-            margin-bottom: 10px;
-            border-bottom: 1px dashed #00ff41;
-            display: inline-block;
+            width: 25%;
+            color: var(--func-blue);
         }
     </style>
 </head>
 <body>
 
-<div id="terminal">
-    <div id="output"></div>
-    <span class="cursor" id="cursor"></span>
+<div id="terminal-window">
+    <div class="window-header">
+        <div class="dots">
+            <div class="dot dot-red"></div>
+            <div class="dot dot-yellow"></div>
+            <div class="dot dot-green"></div>
+        </div>
+        <div class="window-title">bash - admin@v8-server - 80x24</div>
+    </div>
+    
+    <div id="output-content">
+        <div id="output"></div>
+        <span class="cursor" id="cursor"></span>
+    </div>
 </div>
 
 <script>
     const lines = [
-        "System Boot... OK",
-        "Loading V8_Node_Reconstruction_Project...",
+        "<span class='func'>System Boot...</span> <span class='string'>OK</span>",
+        "Loading V8_Summer_Node_Reconstruction_Project...",
         "Establishing Secure Connection...",
         "Access Granted. Welcome, System Admin.",
         "<br>",
-        "<span class='prompt'>admin@V8-Server:~$</span> cat /usr/profiles/instructor.json",
+        "<span class='prompt'>admin@v8-server:~$</span> cat /usr/profiles/instructor.json",
         "<br>",
-        "<span class='highlight'>[ INITIALIZING ADMIN PARAMETERS ]</span>",
-        "===============================================",
+        "<span class='highlight'>// INITIALIZING ADMIN PARAMETERS</span>",
         "<table>",
-        "<tr><td class='col-key'>Class</td><td>[雙棲節點] 資訊工程 / 地球科學</td></tr>",
-        "<tr><td class='col-key'>Target_Node</td><td>國立陽明交通大學 (AI & 編譯系統)</td></tr>",
-        "<tr><td class='col-key'>Core_Stack</td><td>C, Python, C++, 底層邏輯重構</td></tr>",
-        "<tr><td class='col-key'>Fuel_Source</td><td>脆皮五花肉、黑咖啡、機車無目的漫遊</td></tr>",
-        "<tr><td class='col-key'>Sim_Environments</td><td>滿意工廠(產線最佳化)、Minecraft、克蘇魯神話世界</td></tr>",
+        "<tr><td class='col-key'>class</td><td><span class='string'>\"國立台灣師範大學 [地科/資工 雙系統]\"</span></td></tr>",
+        "<tr><td class='col-key'>target_node</td><td><span class='string'>\"國立陽明交通大學資工所 (AI & 編譯系統)\"</span></td></tr>",
+        "<tr><td class='col-key'>core_stack</td><td>[<span class='string'>\"C\"</span>, <span class='string'>\"Python\"</span>, <span class='string'>\"C++\"</span>, <span class='string'>\"底層邏輯重構\"</span>]</td></tr>",
+        "<tr><td class='col-key'>fuel_source</td><td>[<span class='string'>\"極品脆皮五花肉\"</span>, <span class='string'>\"機車無目的漫遊獨旅\"</span>]</td></tr>",
+        "<tr><td class='col-key'>sim_environments</td><td>[<span class='string'>\"滿意工廠(產線最佳化)\"</span>, <span class='string'>\"Minecraft\"</span>, <span class='string'>\"克蘇魯神話領域\"</span>]</td></tr>",
         "</table>",
+        "<span class='highlight'>// SYSTEM RULES & BOUNDARIES</span>",
+        "<span class='prompt'>const</span> <span class='func'>rule_01</span> = <span class='error'>\"[Error Prevention] 發問前，請先查閱大腦暫存區與課本日誌。\"</span>;",
+        "<span class='prompt'>const</span> <span class='func'>rule_02</span> = <span class='error'>\"[Social Energy Shield] 拒絕高耗能社交。Node任務達標，互不干涉。\"</span>;",
+        "<span class='prompt'>const</span> <span class='func'>rule_03</span> = <span class='error'>\"[Efficiency Output] 追求同等價位(時間)內 75% 以上的最佳化運轉。\"</span>;",
         "<br>",
-        "<span class='highlight'>[ SYSTEM RULES & BOUNDARIES ]</span>",
-        "===============================================",
-        "<span class='prompt'>> Rule 1:</span> <span class='error'>[Error Prevention]</span> 發問前，請先查閱大腦暫存區與課本日誌。",
-        "<span class='prompt'>> Rule 2:</span> <span class='error'>[Social Energy Shield]</span> 拒絕高耗能無效社交。任務達標，互不干涉。",
-        "<span class='prompt'>> Rule 3:</span> <span class='error'>[Efficiency Output]</span> 追求同等時間內 75% 以上的最佳化運轉。",
-        "<br>",
-        "<span class='prompt'>admin@V8-Server:~$</span> ./start_20_day_debugging.sh",
+        "<span class='prompt'>admin@v8-server:~$</span> ./start_20_day_debugging.sh",
         "Initializing core protocols for Node01 - Node07...",
         "Awaiting user input..."
     ];
@@ -127,16 +171,16 @@
             lineElement.style.display = 'block';
             outputDiv.appendChild(lineElement);
             
-            // 控制打字速度，最後幾行顯示快一點
-            let delay = (currentLine < 5) ? 300 : 100; 
+            // 微調打印速度：一般行距稍快，帶有 <br> 的換行稍微停頓
+            let delay = lines[currentLine].includes('<br>') ? 50 : 150;
             currentLine++;
             setTimeout(typeLine, delay);
         }
     }
 
-    // 啟動動畫
+    // 延遲啟動動畫，讓視覺停留一下再開始印字
     window.onload = () => {
-        setTimeout(typeLine, 500);
+        setTimeout(typeLine, 600);
     };
 </script>
 
