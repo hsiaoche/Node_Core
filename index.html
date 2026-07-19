@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V8_Project_Admin_Stat_Sheet</title>
+    <!-- 引入 Chart.js 用於繪製雷達圖 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #090a0f;
+            --main-cyan: #00f3ff;
+            --alert-red: #ff003c;
+            --text-gray: #a0aab8;
+            --border-color: rgba(0, 243, 255, 0.3);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #ffffff;
+            font-family: 'Consolas', 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
+            background: rgba(9, 10, 15, 0.9);
+            position: relative;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        /* 標題與雜訊特效 */
+        .header {
+            border-bottom: 2px solid var(--main-cyan);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .title {
+            font-size: 1.5em;
+            color: var(--main-cyan);
+            font-weight: bold;
+            text-transform: uppercase;
+            position: relative;
+        }
+
+        .title::after {
+            content: "V8_PROJECT_ADMIN_UNIT";
+            position: absolute;
+            left: 2px;
+            text-shadow: -1px 0 red;
+            top: 0;
+            color: var(--main-cyan);
+            background: var(--bg-color);
+            overflow: hidden;
+            animation: glitch 2s infinite linear alternate-reverse;
+        }
+
+        @keyframes glitch {
+            0% { clip: rect(2px, 9999px, 8px, 0); }
+            20% { clip: rect(15px, 9999px, 20px, 0); }
+            40% { clip: rect(5px, 9999px, 12px, 0); }
+            60% { clip: rect(25px, 9999px, 30px, 0); }
+            80% { clip: rect(10px, 9999px, 15px, 0); }
+            100% { clip: rect(30px, 9999px, 35px, 0); }
+        }
+
+        /* 主內容佈局 */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        /* 左側：頭像與基本資訊 */
+        .avatar-box {
+            position: relative;
+            width: 100%;
+            height: 250px;
+            border: 1px solid var(--main-cyan);
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 243, 255, 0.05),
+                rgba(0, 243, 255, 0.05) 1px,
+                transparent 1px,
+                transparent 4px
+            );
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* 若你要放自己的照片，可以修改這個 img 標籤的 src，並加上濾鏡 */
+        .avatar-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(100%) contrast(150%) sepia(50%) hue-rotate(130deg);
+            opacity: 0.8;
+        }
+
+        .avatar-box::before {
+            content: "NO_IMAGE_DATA / SCANLINES_ACTIVE";
+            color: var(--main-cyan);
+            opacity: 0.5;
+            position: absolute;
+        }
+
+        .sys-tag {
+            background: var(--main-cyan);
+            color: var(--bg-color);
+            padding: 5px 15px;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 15px;
+        }
+
+        /* 右側：狀態條 */
+        .stat-group {
+            margin-bottom: 20px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: var(--text-gray);
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            background: var(--main-cyan);
+            box-shadow: 0 0 10px var(--main-cyan);
+        }
+
+        .fill-red {
+            background: var(--alert-red);
+            box-shadow: 0 0 10px var(--alert-red);
+        }
+
+        /* 下方雷達圖與規則區 */
+        .bottom-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 40px;
+            border-top: 1px dashed rgba(0, 243, 255, 0.3);
+            padding-top: 30px;
+        }
+
+        .radar-container {
+            position: relative;
+            width: 100%;
+            max-height: 250px;
+        }
+
+        .rules-box {
+            background: rgba(255, 0, 60, 0.05);
+            border-left: 3px solid var(--alert-red);
+            padding: 15px;
+        }
+
+        .rules-title {
+            color: var(--alert-red);
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .rules-box ul {
+            list-style-type: square;
+            padding-left: 20px;
+            color: var(--text-gray);
+            font-size: 0.9em;
+        }
+
+        .rules-box li {
+            margin-bottom: 8px;
+        }
+        
+        .highlight-text {
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 標題區 -->
+        <div class="header">
+            <div class="title">V8_PROJECT_ADMIN_UNIT</div>
+            <div style="color: var(--text-gray); font-size: 0.8em;">STATUS: ONLINE // UPTIME: 00:00:01</div>
+        </div>
+
+        <div class="grid-layout">
+            <!-- 左側：頭像與職業 -->
+            <div>
+                <div class="avatar-box">
+                    <!-- 如果要放你的照片，取消註解下一行，把照片放在同一個資料夾命名為 profile.jpg -->
+                    <!-- <img src="profile.jpg" alt="Admin Profile"> -->
+                </div>
+                <div class="sys-tag">System_Admin (Lv.22)</div>
+                <p style="color: var(--text-gray); font-size: 0.9em; margin-top: 10px;">
+                    CLASS: [雙棲節點] 資訊工程 / 地球科學<br>
+                    TARGET: AI & 編譯系統最佳化<br>
+                    LOC: Wenshan Dist, Taipei
+                </p>
+            </div>
+
+            <!-- 右側：能量與技能條 -->
+            <div>
+                <div class="stat-group">
+                    <div class="stat-label"><span>[Fuel] 脆皮五花肉.exe</span><span>80%</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 80%;"></div></div>
+                </div>
+                
+                <div class="stat-group">
+                    <div class="stat-label"><span>[Map] 無目的機車漫遊.sh</span><span>100%</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 100%;"></div></div>
+                </div>
+
+                <div class="stat-group">
+                    <div class="stat-label"><span>[Core] C_Python_C++_編譯線程</span><span>90%</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 90%;"></div></div>
+                </div>
+
+                <div class="stat-group">
+                    <div class="stat-label"><span>[Sim] 滿意工廠產線 / 克蘇魯模組</span><span>75%</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 75%;"></div></div>
+                </div>
+
+                <div class="stat-group">
+                    <div class="stat-label"><span>[System_Warning] 高耗能社交排斥</span><span>MAX</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill fill-red" style="width: 100%;"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 下方：雷達圖與系統規則 -->
+        <div class="bottom-layout">
+            <div class="radar-container">
+                <canvas id="radarChart"></canvas>
+            </div>
+            
+            <div class="rules-box">
+                <div class="rules-title">[ ! ] SYSTEM_BOUNDARIES</div>
+                <ul>
+                    <li><span class="highlight-text">防呆機制：</span>提問前，必須完成自行重讀與課本檢索。指出具體 Error 行數才能舉手。</li>
+                    <li><span class="highlight-text">社交隔離：</span>完成當日 Node 任務進度條，即解鎖待機模式。互不干涉。</li>
+                    <li><span class="highlight-text">資源最佳化：</span>本系統不提供「完整最佳化解答」，只提供「優化方向與底層邏輯」。</li>
+                    <li><span class="highlight-text">底線警告：</span>防衛底線分明，嚴禁破壞系統核心秩序。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 設定 Chart.js 全局字體顏色
+        Chart.defaults.color = '#a0aab8';
+        Chart.defaults.font.family = 'Consolas, monospace';
+
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        const radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['邏輯重構', '除錯能力', '中二耐性', '社交能耗', '國數理解', '全局規劃'],
+                datasets: [{
+                    label: 'Admin_Stats',
+                    data: [95, 100, 60, 10, 90, 85], // 社交能耗極低，除錯極高
+                    backgroundColor: 'rgba(0, 243, 255, 0.2)',
+                    borderColor: '#00f3ff',
+                    pointBackgroundColor: '#00f3ff',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#00f3ff',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        pointLabels: {
+                            color: '#00f3ff',
+                            font: { size: 12, weight: 'bold' }
+                        },
+                        ticks: { display: false, min: 0, max: 100 } // 隱藏數值標籤
+                    }
+                },
+                plugins: {
+                    legend: { display: false } // 隱藏圖例
+                }
+            }
+        });
+    </script>
+</body>
+</html>
