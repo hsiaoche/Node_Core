@@ -153,7 +153,8 @@
                 const traitCounts = {};
 
                 rawData.forEach(student => {
-                    nodesArray.push({ id: student.id, label: student.name, group: 'student' });
+                    let nodeGroup = student.id === 'SYS_ADMIN' ? 'admin' : 'student';
+                    nodesArray.push({ id: student.id, label: student.name, group: nodeGroup });
 
                     if(student.traits) {
                         student.traits.forEach(t => {
@@ -181,27 +182,36 @@
                 const options = {
                     nodes: {
                         shape: "dot",
-                        borderWidth: 0, // 拔除所有外框，營造純粹的光點感
-                        font: { face: "Inter, sans-serif", size: 10, vadjust: -12, color: "#555" } // 標籤文字大幅調暗，避免破壞幾何圖形
+                        borderWidth: 0,
+                        // 關鍵字：字體亮度大幅提升、移除過度下沉的 vadjust
+                        font: { face: "Inter, sans-serif", size: 13, color: "#e2e8f0", vadjust: -15 }
                     },
                     groups: {
-                        student: { 
-                            size: 8, // 縮小學生節點
-                            color: { background: "#ffffff" }
+                        // 系統核心：最大量體，純白發光，建立絕對的視覺中心
+                        admin: { 
+                            size: 20, 
+                            color: { background: "#ffffff", highlight: { background: "#ffffff" } },
+                            font: { color: "#ffffff", size: 15, face: "Consolas, monospace" }
                         },
+                        // 學生節點：量體放大近一倍，保留辨識度
+                        student: { 
+                            size: 14, 
+                            color: { background: "#cccccc" }
+                        },
+                        // 特徵節點：維持輔助角色與低調字體，不搶主節點視覺
                         trait: { 
-                            color: { background: "#666666" },
-                            font: { color: "#333333" } // 特徵文字極度低調
+                            color: { background: "#333333" },
+                            font: { color: "#888888", size: 10, vadjust: -10 } 
                         }
                     },
                     edges: { 
-                        color: "rgba(255, 255, 255, 0.15)", // 細緻且高透明度的直線
-                        width: 1, 
-                        smooth: false // 關鍵設定：強制關閉貝茲曲線，改為幾何直線
+                        color: "rgba(255, 255, 255, 0.25)", // 稍微調亮連線透明度
+                        width: 1.5, 
+                        smooth: false 
                     },
                     physics: { 
-                        // 拉長距離，讓節點分佈更像星系散佈
-                        forceAtlas2Based: { gravitationalConstant: -120, centralGravity: 0.005, springLength: 150 }, 
+                        // 關鍵字：擴大排斥力與彈簧長度，防止大節點互相碰撞重疊
+                        forceAtlas2Based: { gravitationalConstant: -180, centralGravity: 0.015, springLength: 200 }, 
                         solver: "forceAtlas2Based", 
                         timestep: 0.3 
                     }
