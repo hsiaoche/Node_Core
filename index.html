@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Node_Core // System Root</title>
-    
-    <!-- 預載繪圖與 3D 核心套件 (注意載入順序) -->
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/three"></script>
     <script src="https://unpkg.com/3d-force-graph"></script>
     <script src="https://unpkg.com/three-spritetext"></script>
-    
+
     <style>
         :root {
             --bg-base: #050505;
@@ -19,87 +18,273 @@
             --text-muted: #888888;
             --border-subtle: #333333;
             --highlight: #ffffff;
-            
+            --danger: #ff4444;
+
             --font-mono: 'Consolas', 'Courier New', monospace;
-            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont,
+                "Segoe UI", Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+
+            display: flex;
+            flex-direction: column;
+
             background-color: var(--bg-base);
             color: var(--text-primary);
             font-family: var(--font-sans);
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
+
             -webkit-font-smoothing: antialiased;
         }
 
         #sys-nav {
-            border-bottom: 1px solid var(--border-subtle);
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(5, 5, 5, 0.9);
-            font-family: var(--font-mono);
             z-index: 100;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 20px 30px;
+
+            border-bottom: 1px solid var(--border-subtle);
+            background: rgba(5, 5, 5, 0.9);
+
+            font-family: var(--font-mono);
         }
 
-        .nav-links { display: flex; gap: 40px; }
+        .nav-links {
+            display: flex;
+            gap: 40px;
+        }
 
         #sys-nav a {
             color: var(--text-muted);
             text-decoration: none;
             font-size: 0.85em;
             letter-spacing: 2px;
+            cursor: pointer;
             transition: color 0.2s ease;
+        }
+
+        #sys-nav a:hover,
+        #sys-nav a.active {
+            color: var(--highlight);
+        }
+
+        #sys-nav a.active {
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--highlight);
+        }
+
+        .sys-btn {
+            padding: 4px 12px;
+            border: 1px dashed var(--border-subtle);
+        }
+
+        .sys-btn:hover {
+            border-color: var(--highlight);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        #app-root {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Modal */
+
+        #edit-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+
+            display: none;
+            align-items: center;
+            justify-content: center;
+
+            background: rgba(0, 0, 0, 0.85);
+        }
+
+        #edit-modal.is-visible {
+            display: flex;
+        }
+
+        .modal-content {
+            position: relative;
+
+            width: min(400px, calc(100% - 40px));
+            padding: 30px;
+
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-panel);
+
+            font-family: var(--font-mono);
+        }
+
+        .modal-content::before {
+            content: '';
+
+            position: absolute;
+            top: -1px;
+            left: -1px;
+
+            width: 10px;
+            height: 10px;
+
+            border-top: 2px solid var(--highlight);
+            border-left: 2px solid var(--highlight);
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+
+            border-bottom: 1px dashed var(--border-subtle);
+
+            color: var(--highlight);
+            font-size: 1.2em;
+        }
+
+        .modal-subtitle {
+            margin-bottom: 10px;
+            color: var(--text-muted);
+            font-size: 0.8em;
+        }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+
+            min-height: 30px;
+            margin-bottom: 20px;
+        }
+
+        .sys-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+
+            padding: 4px 10px;
+
+            background: #222;
+            color: var(--text-primary);
+            font-size: 0.85em;
+        }
+
+        .sys-tag-remove {
+            border: 0;
+            padding: 0;
+
+            background: transparent;
+            color: var(--text-muted);
+
+            font: inherit;
+            font-weight: bold;
             cursor: pointer;
         }
 
-        #sys-nav a:hover { color: var(--text-primary); }
-        #sys-nav a.active { color: var(--highlight); border-bottom: 1px solid var(--highlight); padding-bottom: 4px; }
-        
-        .sys-btn { border: 1px dashed var(--border-subtle); padding: 4px 12px; cursor: pointer; }
-        .sys-btn:hover { border-color: var(--highlight); background: rgba(255,255,255,0.05); }
-
-        #app-root { flex: 1; position: relative; overflow-y: auto; overflow-x: hidden; }
-
-        /* [關鍵修正] 強制給予 3D 容器物理高度，避免空間塌陷導致黑畫面 */
-        #network-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
-
-        /* 終端機風格編輯視窗 (Modal) */
-        #edit-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 999; justify-content: center; align-items: center;
+        .sys-tag-remove:hover {
+            color: var(--danger);
         }
-        .modal-content {
-            background: var(--bg-panel); border: 1px solid var(--border-subtle);
-            width: 400px; padding: 30px; font-family: var(--font-mono);
-            position: relative;
-        }
-        .modal-content::before {
-            content: ''; position: absolute; top: -1px; left: -1px; width: 10px; height: 10px;
-            border-top: 2px solid var(--highlight); border-left: 2px solid var(--highlight);
-        }
-        .modal-header { font-size: 1.2em; color: var(--highlight); margin-bottom: 20px; border-bottom: 1px dashed var(--border-subtle); padding-bottom: 10px; }
-        
-        .tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-        .sys-tag { background: #222; color: var(--text-primary); padding: 4px 10px; font-size: 0.85em; display: flex; align-items: center; gap: 6px; }
-        .sys-tag span { cursor: pointer; color: #888; font-weight: bold; }
-        .sys-tag span:hover { color: #ff4444; }
 
-        .input-group { display: flex; gap: 10px; margin-bottom: 25px; }
-        .input-group input { flex: 1; background: transparent; border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 8px; font-family: var(--font-mono); outline: none; }
-        .input-group input:focus { border-color: var(--highlight); }
-        .input-group button { background: var(--highlight); color: #000; border: none; padding: 0 15px; cursor: pointer; font-family: var(--font-mono); font-weight: bold; }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
 
-        .modal-actions { display: flex; justify-content: flex-end; gap: 15px; }
-        .modal-actions button { background: transparent; color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 6px 15px; cursor: pointer; font-family: var(--font-mono); transition: 0.2s; }
-        .modal-actions button:hover { color: var(--text-primary); border-color: var(--text-primary); }
+        .input-group input {
+            flex: 1;
+
+            padding: 8px;
+
+            border: 1px solid var(--border-subtle);
+            outline: none;
+
+            background: transparent;
+            color: var(--text-primary);
+
+            font-family: var(--font-mono);
+        }
+
+        .input-group input:focus {
+            border-color: var(--highlight);
+        }
+
+        .input-group button {
+            padding: 0 15px;
+
+            border: none;
+
+            background: var(--highlight);
+            color: #000;
+
+            font-family: var(--font-mono);
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+        }
+
+        .modal-actions button {
+            padding: 6px 15px;
+
+            border: 1px solid var(--border-subtle);
+
+            background: transparent;
+            color: var(--text-muted);
+
+            font-family: var(--font-mono);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .modal-actions button:hover {
+            border-color: var(--text-primary);
+            color: var(--text-primary);
+        }
+
+        .modal-actions .primary {
+            border-color: var(--highlight);
+            color: var(--highlight);
+        }
+
+        .network-container {
+            position: absolute;
+            inset: 0;
+        }
+
+        .network-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+
+            color: #555;
+            font-family: var(--font-mono);
+        }
+
+        .system-error {
+            padding: 30px;
+            color: var(--danger);
+            font-family: var(--font-mono);
+        }
     </style>
 </head>
+
 <body>
 
     <nav id="sys-nav">
@@ -107,286 +292,704 @@
             <a href="#admin" class="active">NODE_CORE_ADMIN</a>
             <a href="#nodes">NODE_TOPOLOGY</a>
         </div>
-        <div>
-            <a class="sys-btn" onclick="exportData()">[ EXPORT_DATA ]</a>
-        </div>
+
+        <a href="#" class="sys-btn" id="export-data-btn">
+            [ EXPORT_DATA ]
+        </a>
     </nav>
 
-    <div id="app-root"></div>
+    <main id="app-root"></main>
 
-    <!-- 節點編輯器 Modal -->
-    <div id="edit-modal">
-        <div class="modal-content">
-            <div class="modal-header">TARGET: <span id="modal-node-name">SYS_ADMIN</span></div>
-            <div style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 10px;">> CURRENT_TRAITS:</div>
+    <div id="edit-modal" aria-hidden="true">
+        <div class="modal-content" role="dialog" aria-modal="true">
+            <div class="modal-header">
+                TARGET:
+                <span id="modal-node-name">SYS_ADMIN</span>
+            </div>
+
+            <div class="modal-subtitle">
+                &gt; CURRENT_TRAITS:
+            </div>
+
             <div class="tag-list" id="modal-tag-list"></div>
-            
+
             <div class="input-group">
-                <input type="text" id="new-trait-input" placeholder="Enter new trait..." onkeypress="if(event.key === 'Enter') addTrait()">
-                <button onclick="addTrait()">ADD</button>
+                <input
+                    type="text"
+                    id="new-trait-input"
+                    placeholder="Enter new trait..."
+                    autocomplete="off"
+                >
+
+                <button type="button" id="add-trait-btn">
+                    ADD
+                </button>
             </div>
 
             <div class="modal-actions">
-                <button onclick="closeModal()">[ CANCEL ]</button>
-                <button style="border-color: var(--highlight); color: var(--highlight);" onclick="saveNodeData()">[ COMMIT ]</button>
+                <button type="button" id="cancel-modal-btn">
+                    [ CANCEL ]
+                </button>
+
+                <button type="button" class="primary" id="commit-node-btn">
+                    [ COMMIT ]
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 核心狀態管理 (State Management) ---
-        let globalNodeData = [];
-        let currentEditNodeId = null;
-        let tempTraits = [];
-        
-        async function initDataStore() {
-            localStorage.removeItem('v8_node_data'); 
-            
-            const cached = localStorage.getItem('v8_node_data');
-            if (cached) {
-                globalNodeData = JSON.parse(cached);
-            } else {
-                try {
-                    const res = await fetch('nodes.json');
-                    if (!res.ok) throw new Error("Network response was not ok");
-                    globalNodeData = await res.json();
-                    localStorage.setItem('v8_node_data', JSON.stringify(globalNodeData));
-                } catch (e) {
-                    console.error("[SYS_ERROR] Data load failed. (CORS issue if running directly from file://?)", e);
+        'use strict';
+
+        const STORAGE_KEY = 'v8_node_data';
+
+        const ViewTemplates = Object.freeze({
+            admin: `
+                <div style="
+                    padding: 40px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100%;
+                ">
+                    <div style="
+                        width: 100%;
+                        max-width: 500px;
+                        height: 500px;
+                    ">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+            `,
+
+            nodes: `
+                <div class="network-container" id="network-container"></div>
+
+                <div class="network-hint">
+                    &gt; CLICK to inspect node<br>
+                    &gt; DRAG to rotate space
+                </div>
+            `
+        });
+
+        const state = {
+            nodes: [],
+            editingNodeId: null,
+            draftTraits: []
+        };
+
+        const runtime = {
+            chart: null,
+            network: null,
+            animationFrameId: null,
+            routeRequestId: 0
+        };
+
+        const dom = {
+            root: document.getElementById('app-root'),
+            modal: document.getElementById('edit-modal'),
+            modalNodeName: document.getElementById('modal-node-name'),
+            modalTagList: document.getElementById('modal-tag-list'),
+            traitInput: document.getElementById('new-trait-input'),
+            navLinks: document.querySelectorAll('.nav-links a')
+        };
+
+        function logError(message, error) {
+            console.error(`[SYS_ERROR] ${message}`, error);
+        }
+
+        function loadStoredNodes() {
+            const rawData = localStorage.getItem(STORAGE_KEY);
+
+            if (!rawData) {
+                return null;
+            }
+
+            try {
+                const parsedData = JSON.parse(rawData);
+
+                if (!Array.isArray(parsedData)) {
+                    throw new Error('Stored node data must be an array.');
                 }
+
+                return parsedData;
+            } catch (error) {
+                logError('Invalid localStorage data.', error);
+                localStorage.removeItem(STORAGE_KEY);
+                return null;
             }
         }
 
-        // --- 檔案導出協定 ---
-        function exportData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(globalNodeData, null, 2));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "nodes.json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
+        async function loadNodeData() {
+            const storedNodes = loadStoredNodes();
+
+            if (storedNodes) {
+                return storedNodes;
+            }
+
+            try {
+                const response = await fetch('nodes.json');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const nodes = await response.json();
+
+                if (!Array.isArray(nodes)) {
+                    throw new Error('nodes.json must contain an array.');
+                }
+
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(nodes));
+
+                return nodes;
+            } catch (error) {
+                console.warn(
+                    '[SYS_WARN] nodes.json unavailable. Using fallback data.',
+                    error
+                );
+
+                const fallbackNodes = [
+                    {
+                        id: 'SYS_ADMIN',
+                        name: 'System Admin',
+                        traits: ['邏輯重構', '全局規劃']
+                    },
+                    {
+                        id: 'NODE_01',
+                        name: 'Frontend Alpha',
+                        traits: ['除錯能力', '邏輯重構'],
+                        familiar_with: ['SYS_ADMIN']
+                    },
+                    {
+                        id: 'NODE_02',
+                        name: 'Backend Beta',
+                        traits: ['國數理解'],
+                        familiar_with: ['SYS_ADMIN', 'NODE_01']
+                    }
+                ];
+
+                localStorage.setItem(
+                    STORAGE_KEY,
+                    JSON.stringify(fallbackNodes)
+                );
+
+                return fallbackNodes;
+            }
         }
 
-        // --- 路由引擎 ---
-        const root = document.getElementById('app-root');
-        const links = document.querySelectorAll('.nav-links a');
+        function exportData() {
+            const blob = new Blob(
+                [JSON.stringify(state.nodes, null, 2)],
+                { type: 'application/json' }
+            );
 
-        // [關鍵修正] 建立全域參照以利切換時卸載資源
-        let networkInstance = null;
-        let networkInterval = null;
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+
+            anchor.href = url;
+            anchor.download = 'nodes.json';
+
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+
+            URL.revokeObjectURL(url);
+        }
+
+        function destroyChart() {
+            if (!runtime.chart) {
+                return;
+            }
+
+            runtime.chart.destroy();
+            runtime.chart = null;
+        }
+
+        function stopNetworkAnimation() {
+            if (runtime.animationFrameId !== null) {
+                cancelAnimationFrame(runtime.animationFrameId);
+                runtime.animationFrameId = null;
+            }
+        }
+
+        function destroyNetwork() {
+            stopNetworkAnimation();
+
+            if (runtime.network) {
+                runtime.network._destructor?.();
+                runtime.network = null;
+            }
+        }
+
+        function teardownView() {
+            destroyChart();
+            destroyNetwork();
+        }
 
         async function loadView(hash) {
-            if(globalNodeData.length === 0) await initDataStore();
+            const requestId = ++runtime.routeRequestId;
 
-            // [關鍵修正] Teardown Phase：覆蓋 DOM 前，先釋放舊資源與清除計時器
-            if (networkInterval) {
-                clearInterval(networkInterval);
-                networkInterval = null;
-            }
-            if (networkInstance && typeof networkInstance._destructor === 'function') {
-                networkInstance._destructor();
-                networkInstance = null;
+            if (state.nodes.length === 0) {
+                state.nodes = await loadNodeData();
             }
 
-            const route = hash.replace('#', '') || 'admin';
-            const filename = route === 'admin' ? 'view_admin.html' : 'view_nodes.html';
+            if (requestId !== runtime.routeRequestId) {
+                return;
+            }
 
-            try {
-                const response = await fetch(filename);
-                if (!response.ok) throw new Error('Module fetch failed');
-                root.innerHTML = await response.text();
-                
-                links.forEach(link => { link.classList.toggle('active', link.getAttribute('href') === '#' + route); });
+            teardownView();
 
-                // DOM 已同步更新，直接呼叫對應的初始化腳本
-                if (route === 'admin' && typeof window.initAdminChart === 'function') window.initAdminChart();
-                if (route === 'nodes' && typeof window.initNodeNetwork === 'function') window.initNodeNetwork();
+            const route = hash.replace(/^#/, '') || 'admin';
 
-            } catch (error) {
-                root.innerHTML = `<div style="padding: 30px; font-family: monospace; color: #888;">[SYS_ERROR] Missing module: ${filename}</div>`;
+            dom.root.innerHTML =
+                ViewTemplates[route] ??
+                `<div class="system-error">[SYS_ERROR] View not found.</div>`;
+
+            dom.navLinks.forEach(link => {
+                link.classList.toggle(
+                    'active',
+                    link.getAttribute('href') === `#${route}`
+                );
+            });
+
+            if (route === 'admin') {
+                renderAdminChart();
+            }
+
+            if (route === 'nodes') {
+                renderNodeNetwork();
             }
         }
 
-        window.addEventListener('hashchange', () => loadView(window.location.hash));
-        loadView(window.location.hash);
-
-        // --- 雷達圖渲染 ---
-        window.initAdminChart = function() {
+        function renderAdminChart() {
             const canvas = document.getElementById('radarChart');
-            if (!canvas) return;
-            Chart.defaults.color = '#888';
-            Chart.defaults.font.family = "'Inter', sans-serif";
-            new Chart(canvas.getContext('2d'), {
+
+            if (!canvas) {
+                return;
+            }
+
+            runtime.chart = new Chart(canvas, {
                 type: 'radar',
+
                 data: {
-                    labels: ['邏輯重構', '除錯能力', '中二耐性', '社交能耗', '國數理解', '全局規劃'],
+                    labels: [
+                        '邏輯重構',
+                        '除錯能力',
+                        '中二耐性',
+                        '社交能耗',
+                        '國數理解',
+                        '全局規劃'
+                    ],
+
                     datasets: [{
                         data: [95, 100, 60, 10, 90, 85],
+
                         backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        borderColor: '#ffffff', pointBackgroundColor: '#ffffff',
-                        pointBorderColor: '#0a0a0a', pointBorderWidth: 2, borderWidth: 1.5
+                        borderColor: '#ffffff',
+
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#0a0a0a',
+                        pointBorderWidth: 2,
+
+                        borderWidth: 1.5
                     }]
                 },
+
                 options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: { r: { angleLines: { color: 'rgba(255, 255, 255, 0.1)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' }, pointLabels: { color: '#e2e8f0', font: { size: 12 } }, ticks: { display: false, min: 0, max: 100 } } },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        };
-        
-        window.initNodeNetwork = function() {
-            const container = document.getElementById('network-container');
-            if (!container) return;
-            if (globalNodeData.length === 0) return console.error("[SYS_ERROR] No data in global store.");
-        
-            const nodesMap = new Map();
-            const linksArray = []; 
-            const traitCounts = {};
-        
-            // 第一階段：建立主要實體節點
-            globalNodeData.forEach(student => {
-                let nodeGroup = student.id === 'SYS_ADMIN' ? 'admin' : 'student';
-                nodesMap.set(student.id, { id: student.id, label: student.name || student.id, group: nodeGroup });
-            });
-        
-            // 第二階段：處理特徵與人際連結
-            globalNodeData.forEach(student => {
-                if(student.traits) {
-                    student.traits.forEach(t => {
-                        traitCounts[t] = (traitCounts[t] || 0) + 1;
-                        linksArray.push({ source: student.id, target: 'T_' + t });
-                    });
-                }
-                if(student.familiar_with) {
-                    student.familiar_with.forEach(targetId => {
-                        // 檢查 target 是否存在，避免底層物理引擎崩潰
-                        if(nodesMap.has(targetId)) {
-                            linksArray.push({ source: student.id, target: targetId });
-                        } else {
-                            console.warn(`[SYS_WARN] Dangling link bypassed: ${student.id} -> ${targetId}`);
+                    responsive: true,
+                    maintainAspectRatio: false,
+
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+
+                            pointLabels: {
+                                color: '#e2e8f0',
+                                font: {
+                                    size: 12
+                                }
+                            },
+
+                            ticks: {
+                                display: false,
+                                min: 0,
+                                max: 100
+                            }
                         }
-                    });
+                    },
+
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
                 }
             });
-        
-            // 第三階段：生成虛擬特徵節點
-            Object.keys(traitCounts).forEach(t => {
-                const count = traitCounts[t];
-                nodesMap.set('T_' + t, { id: 'T_' + t, label: t, group: 'trait', size: 4 + (count * 1.5) });
+        }
+
+        function buildGraphData() {
+            const nodes = new Map();
+            const links = [];
+            const linkKeys = new Set();
+            const traitCounts = Object.create(null);
+
+            const addLink = (source, target, type) => {
+                const key = `${type}:${source}->${target}`;
+
+                if (linkKeys.has(key)) {
+                    return;
+                }
+
+                linkKeys.add(key);
+                links.push({ source, target });
+            };
+
+            state.nodes.forEach(node => {
+                nodes.set(node.id, {
+                    id: node.id,
+                    label: node.name || node.id,
+                    group: node.id === 'SYS_ADMIN'
+                        ? 'admin'
+                        : 'student'
+                });
             });
-        
-            const nodesArray = Array.from(nodesMap.values());
-        
-            // 啟動 3D 渲染引擎
+
+            state.nodes.forEach(node => {
+                const traits = Array.isArray(node.traits)
+                    ? node.traits
+                    : [];
+
+                traits.forEach(trait => {
+                    traitCounts[trait] =
+                        (traitCounts[trait] || 0) + 1;
+
+                    addLink(
+                        node.id,
+                        `T_${trait}`,
+                        'trait'
+                    );
+                });
+
+                const familiarWith = Array.isArray(node.familiar_with)
+                    ? node.familiar_with
+                    : [];
+
+                familiarWith.forEach(targetId => {
+                    if (nodes.has(targetId)) {
+                        addLink(
+                            node.id,
+                            targetId,
+                            'familiar'
+                        );
+                    }
+                });
+            });
+
+            Object.entries(traitCounts).forEach(
+                ([trait, count]) => {
+                    nodes.set(`T_${trait}`, {
+                        id: `T_${trait}`,
+                        label: trait,
+                        group: 'trait',
+                        size: 4 + count * 1.5
+                    });
+                }
+            );
+
+            return {
+                nodes: [...nodes.values()],
+                links
+            };
+        }
+
+        function startCameraAnimation() {
+            let angle = 0;
+
+            const animate = () => {
+                if (!runtime.network) {
+                    return;
+                }
+
+                runtime.network.cameraPosition({
+                    x: 250 * Math.sin(angle),
+                    y: 200,
+                    z: 250 * Math.cos(angle)
+                });
+
+                angle += Math.PI / 2000;
+
+                runtime.animationFrameId =
+                    requestAnimationFrame(animate);
+            };
+
+            animate();
+        }
+
+        function renderNodeNetwork() {
+            const container =
+                document.getElementById('network-container');
+
+            if (!container || state.nodes.length === 0) {
+                return;
+            }
+
+            const graphData = buildGraphData();
+
             try {
-                networkInstance = ForceGraph3D()(container)
-                    .graphData({ nodes: nodesArray, links: linksArray })
+                runtime.network = ForceGraph3D()(container)
+                    .graphData(graphData)
                     .backgroundColor('#050505')
                     .nodeResolution(32)
+
                     .nodeColor(node => {
-                        if (node.group === 'admin') return '#ffffff';
-                        if (node.group === 'student') return '#cccccc';
-                        return '#333333';
+                        switch (node.group) {
+                            case 'admin':
+                                return '#ffffff';
+
+                            case 'student':
+                                return '#cccccc';
+
+                            default:
+                                return '#444444';
+                        }
                     })
+
                     .nodeVal(node => {
-                        if (node.group === 'admin') return 18;
-                        if (node.group === 'student') return 8;
-                        return node.size || 3;
+                        switch (node.group) {
+                            case 'admin':
+                                return 18;
+
+                            case 'student':
+                                return 8;
+
+                            default:
+                                return node.size || 3;
+                        }
                     })
+
                     .nodeThreeObjectExtend(true)
+
                     .nodeThreeObject(node => {
-                        // [關鍵防呆] 確保 label 有值，否則 Three.js 內部建立 TextGeometry 時會 crash
-                        const sprite = new SpriteText(node.label || 'Unknown');
-                        sprite.color = node.group === 'admin' ? '#ffffff' : '#aaaaaa';
-                        sprite.textHeight = node.group === 'admin' ? 6 : 3;
-                        
-                        const offset = node.group === 'admin' ? 18 : (node.group === 'student' ? 8 : 4);
-                        sprite.position.y = offset + 3; 
-                        
+                        const sprite = new SpriteText(
+                            node.label || 'Unknown'
+                        );
+
+                        sprite.color =
+                            node.group === 'admin'
+                                ? '#ffffff'
+                                : '#aaaaaa';
+
+                        sprite.textHeight =
+                            node.group === 'admin'
+                                ? 6
+                                : 3;
+
+                        sprite.position.y =
+                            node.group === 'admin'
+                                ? 21
+                                : node.group === 'student'
+                                    ? 11
+                                    : 7;
+
                         return sprite;
                     })
-                    .linkColor(() => 'rgba(255, 255, 255, 0.2)')
+
+                    .linkColor(() => 'rgba(255, 255, 255, 0.15)')
                     .linkWidth(1.5)
-                    .showNavInfo(false);
+                    .showNavInfo(false)
 
-                // [關鍵修正] 使用全域變數綁定，確保切換路由時可以被清除
-                let angle = 0;
-                networkInterval = setInterval(() => {
-                    if (networkInstance) {
-                        networkInstance.cameraPosition({
-                            x: 250 * Math.sin(angle),
-                            y: 200,
-                            z: 250 * Math.cos(angle)
-                        });
-                        angle += Math.PI / 1500;
-                    }
-                }, 30);
+                    .onNodeClick(node => {
+                        if (node.group !== 'trait') {
+                            openModal(node.id);
+                        }
+                    });
 
-            } catch (err) {
-                container.innerHTML = `<div style="padding:30px; font-family:monospace; color:#888;">[SYS_ERROR] 3D Engine Init Failed.</div>`;
-                console.error(err);
+                startCameraAnimation();
+
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="system-error">
+                        [SYS_ERROR] WebGL Engine Failed.
+                    </div>
+                `;
+
+                logError('Failed to initialize 3D network.', error);
             }
-        };
+        }
 
-        // --- 模態框操作邏輯 ---
         function openModal(nodeId) {
-            const targetNode = globalNodeData.find(n => n.id === nodeId);
-            if (!targetNode) return;
-            
-            currentEditNodeId = nodeId;
-            tempTraits = [...(targetNode.traits || [])];
-            
-            document.getElementById('modal-node-name').textContent = targetNode.name || targetNode.id;
+            const targetNode =
+                state.nodes.find(node => node.id === nodeId);
+
+            if (!targetNode) {
+                return;
+            }
+
+            state.editingNodeId = nodeId;
+            state.draftTraits = Array.isArray(targetNode.traits)
+                ? [...targetNode.traits]
+                : [];
+
+            dom.modalNodeName.textContent =
+                targetNode.name || targetNode.id;
+
             renderModalTags();
-            
-            document.getElementById('edit-modal').style.display = 'flex';
-            document.getElementById('new-trait-input').focus();
+
+            dom.modal.classList.add('is-visible');
+            dom.modal.setAttribute('aria-hidden', 'false');
+
+            dom.traitInput.value = '';
+            dom.traitInput.focus();
         }
 
         function closeModal() {
-            document.getElementById('edit-modal').style.display = 'none';
-            document.getElementById('new-trait-input').value = '';
-            currentEditNodeId = null;
+            dom.modal.classList.remove('is-visible');
+            dom.modal.setAttribute('aria-hidden', 'true');
+
+            state.editingNodeId = null;
+            state.draftTraits = [];
+
+            dom.traitInput.value = '';
         }
 
         function renderModalTags() {
-            const container = document.getElementById('modal-tag-list');
-            container.innerHTML = '';
-            tempTraits.forEach((t, index) => {
-                container.innerHTML += `<div class="sys-tag">${t} <span onclick="removeTrait(${index})">×</span></div>`;
+            dom.modalTagList.replaceChildren();
+
+            state.draftTraits.forEach((trait, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'sys-tag';
+
+                const label = document.createElement('span');
+                label.textContent = trait;
+
+                const removeButton =
+                    document.createElement('button');
+
+                removeButton.type = 'button';
+                removeButton.className = 'sys-tag-remove';
+                removeButton.textContent = '×';
+                removeButton.setAttribute(
+                    'aria-label',
+                    `Remove ${trait}`
+                );
+
+                removeButton.addEventListener(
+                    'click',
+                    () => removeTrait(index)
+                );
+
+                tag.append(label, removeButton);
+                dom.modalTagList.appendChild(tag);
             });
         }
 
         function addTrait() {
-            const input = document.getElementById('new-trait-input');
-            const val = input.value.trim();
-            if (val && !tempTraits.includes(val)) {
-                tempTraits.push(val);
-                renderModalTags();
-                input.value = '';
+            const trait = dom.traitInput.value.trim();
+
+            if (!trait || state.draftTraits.includes(trait)) {
+                return;
             }
+
+            state.draftTraits.push(trait);
+
+            dom.traitInput.value = '';
+
+            renderModalTags();
+            dom.traitInput.focus();
         }
 
         function removeTrait(index) {
-            tempTraits.splice(index, 1);
+            state.draftTraits.splice(index, 1);
             renderModalTags();
         }
 
         function saveNodeData() {
-            const targetIndex = globalNodeData.findIndex(n => n.id === currentEditNodeId);
-            if (targetIndex !== -1) {
-                globalNodeData[targetIndex].traits = [...tempTraits];
-                localStorage.setItem('v8_node_data', JSON.stringify(globalNodeData));
-                closeModal();
-                
-                // 重繪前同樣需要 Teardown
-                if (networkInterval) clearInterval(networkInterval);
-                if (networkInstance) networkInstance._destructor();
-                window.initNodeNetwork();
+            const targetNode = state.nodes.find(
+                node => node.id === state.editingNodeId
+            );
+
+            if (!targetNode) {
+                return;
+            }
+
+            targetNode.traits = [...state.draftTraits];
+
+            localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify(state.nodes)
+            );
+
+            closeModal();
+
+            if (window.location.hash === '#nodes') {
+                loadView('#nodes');
             }
         }
+
+        function bindEvents() {
+            document
+                .getElementById('export-data-btn')
+                .addEventListener('click', event => {
+                    event.preventDefault();
+                    exportData();
+                });
+
+            document
+                .getElementById('add-trait-btn')
+                .addEventListener('click', addTrait);
+
+            document
+                .getElementById('cancel-modal-btn')
+                .addEventListener('click', closeModal);
+
+            document
+                .getElementById('commit-node-btn')
+                .addEventListener('click', saveNodeData);
+
+            dom.traitInput.addEventListener(
+                'keydown',
+                event => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        addTrait();
+                    }
+                }
+            );
+
+            dom.modal.addEventListener(
+                'click',
+                event => {
+                    if (event.target === dom.modal) {
+                        closeModal();
+                    }
+                }
+            );
+
+            window.addEventListener(
+                'hashchange',
+                () => loadView(window.location.hash)
+            );
+
+            window.addEventListener(
+                'beforeunload',
+                teardownView
+            );
+        }
+
+        async function bootstrap() {
+            bindEvents();
+            await loadView(window.location.hash);
+        }
+
+        bootstrap();
     </script>
+
 </body>
 </html>
