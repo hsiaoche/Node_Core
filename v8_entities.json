@@ -1,0 +1,51 @@
+[
+  {
+    "id": "N1",
+    "name": "Node01",
+    "description": "Roblox / 3螢幕",
+    "traits": ["Roblox", "3螢幕", "IG", "星座"],
+    "familiar_with": ["N2"]
+  },
+  {
+    "id": "N2",
+    "name": "Node02",
+    "description": "寶可夢",
+    "traits": ["寶可夢"],
+    "familiar_with": ["N1"]
+  },
+  {
+    "id": "N3",
+    "name": "Node03",
+    "description": "沉默 / 認真寫考卷",
+    "traits": ["沈默", "認真"],
+    "familiar_with": []
+  },
+  {
+    "id": "N4",
+    "name": "Node04",
+    "description": "三角洲 / 傳說對決",
+    "traits": ["三角洲", "傳說對決", "騎腳踏車", "IG"],
+    "familiar_with": []
+  },
+  {
+    "id": "N5",
+    "name": "Node05",
+    "description": "想當廚師 / 澎湖",
+    "traits": ["想當廚師", "去澎湖", "星座", "IG"],
+    "familiar_with": []
+  },
+  {
+    "id": "N6",
+    "name": "Node06",
+    "description": "不常出去玩",
+    "traits": ["不常出門"],
+    "familiar_with": []
+  },
+  {
+    "id": "N7",
+    "name": "Node07",
+    "description": "露營 / 童軍",
+    "traits": ["露營", "童軍", "機車相關"],
+    "familiar_with": []
+  }
+]
