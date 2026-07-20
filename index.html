@@ -6,7 +6,9 @@
     <title>Node_Core // System Root</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/standalone/umd/vis-network.min.js"></script>
+    <!-- 預載繪圖套件 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/3d-force-graph"></script>
     
     <style>
         :root {
@@ -218,70 +220,77 @@
 
         // --- 動態圖譜渲染與事件綁定 ---
         let networkInstance = null;
-        window.initNodeNetwork = function() {
+        // --- 全域渲染邏輯：WebGL 3D 動態圖譜解析器 ---
+        window.initNodeNetwork = async function() {
             const container = document.getElementById('network-container');
             if (!container) return;
 
-            const nodesArray = [];
-            const edgesArray = [];
-            const traitCounts = {};
-            globalNodeData.forEach(student => {
-                let nodeGroup = student.id === 'SYS_ADMIN' ? 'admin' : 'student';
-                nodesArray.push({ id: student.id, label: student.name, group: nodeGroup });
-            
-                if(student.traits) {
-                    student.traits.forEach(t => {
-                        traitCounts[t] = (traitCounts[t] || 0) + 1;
-                        // 衛星軌道：標籤緊吸附學生，距離 60
-                        edgesArray.push({ from: student.id, to: 'T_' + t, length: 60 });
-                    });
-                }
-                
-                if(student.familiar_with) {
-                    student.familiar_with.forEach(target => {
-                        // 軌道判定：SYS_ADMIN 核心推力 300，學生人際推力 150
-                        let edgeLength = student.id === 'SYS_ADMIN' ? 300 : 150;
-                        edgesArray.push({ 
-                            from: student.id, 
-                            to: target, 
-                            dashes: true, 
-                            width: 1.5, 
-                            color: 'rgba(255,255,255,0.2)',
-                            length: edgeLength 
+            try {
+                const res = await fetch('nodes.json');
+                const rawData = await res.json();
+
+                const nodesArray = [];
+                const linksArray = []; 
+                const traitCounts = {};
+
+                // 第一次迭代：轉換為 3D 引擎專用的 source 與 target 格式
+                rawData.forEach(student => {
+                    let nodeGroup = student.id === 'SYS_ADMIN' ? 'admin' : 'student';
+                    nodesArray.push({ id: student.id, label: student.name, group: nodeGroup });
+
+                    if(student.traits) {
+                        student.traits.forEach(t => {
+                            traitCounts[t] = (traitCounts[t] || 0) + 1;
+                            linksArray.push({ source: student.id, target: 'T_' + t });
                         });
+                    }
+                    if(student.familiar_with) {
+                        student.familiar_with.forEach(target => {
+                            linksArray.push({ source: student.id, target: target });
+                        });
+                    }
+                });
+
+                // 第二次迭代：特徵節點降維微縮
+                Object.keys(traitCounts).forEach(t => {
+                    const count = traitCounts[t];
+                    nodesArray.push({ id: 'T_' + t, label: t, group: 'trait', size: 4 + (count * 1.5) });
+                });
+
+                // 第三階段：啟動 3D 渲染引擎並設定星空自轉
+                const Graph = ForceGraph3D()(container)
+                    .graphData({ nodes: nodesArray, links: linksArray })
+                    .backgroundColor('#050505')
+                    .nodeLabel('label')
+                    .nodeColor(node => {
+                        if (node.group === 'admin') return '#ffffff';
+                        if (node.group === 'student') return '#cccccc';
+                        return '#333333';
+                    })
+                    .nodeVal(node => {
+                        // 設定 3D 球體量體
+                        if (node.group === 'admin') return 18;
+                        if (node.group === 'student') return 8;
+                        return node.size || 3; 
+                    })
+                    .linkColor(() => 'rgba(255, 255, 255, 0.2)')
+                    .linkWidth(1)
+                    .showNavInfo(false); // 關閉底層的操作提示文字
+
+                // 啟動緩慢自轉，營造系統待機感
+                let angle = 0;
+                setInterval(() => {
+                    Graph.cameraPosition({
+                        x: 250 * Math.sin(angle),
+                        z: 250 * Math.cos(angle)
                     });
-                }
-            });
+                    angle += Math.PI / 1500;
+                }, 30);
 
-            Object.keys(traitCounts).forEach(t => {
-                const count = traitCounts[t];
-                const dynamicSize = 4 + (count * 1.5);
-                nodesArray.push({ id: 'T_' + t, label: t, group: 'trait', size: dynamicSize });
-            });
-
-            const data = { nodes: new vis.DataSet(nodesArray), edges: new vis.DataSet(edgesArray) };
-            const options = {
-                nodes: { shape: "dot", borderWidth: 0, font: { face: "Inter, sans-serif", size: 13, color: "#e2e8f0", vadjust: -15 } },
-                groups: {
-                    admin: { size: 20, color: { background: "#ffffff", highlight: { background: "#ffffff" } }, font: { color: "#ffffff", size: 15, face: "Consolas, monospace" } },
-                    student: { size: 12, color: { background: "#cccccc" } },
-                    trait: { color: { background: "#333333" }, font: { color: "#888888", size: 10, vadjust: -10 } }
-                },
-                edges: { color: "rgba(255, 255, 255, 0.2)", width: 1, smooth: false },
-                interaction: { hover: true },
-                physics: { forceAtlas2Based: { gravitationalConstant: -180, centralGravity: 0.015, springLength: 200 }, solver: "forceAtlas2Based", timestep: 0.3 }
-            };
-
-            if (networkInstance) networkInstance.destroy();
-            networkInstance = new vis.Network(container, data, options);
-
-            // 綁定點擊編輯事件
-            networkInstance.on("click", function (params) {
-                if (params.nodes.length > 0) {
-                    const nodeId = params.nodes[0];
-                    if (!nodeId.startsWith('T_')) openModal(nodeId); // 排除特徵節點，只編輯實體
-                }
-            });
+            } catch (err) {
+                container.innerHTML = `<div style="padding:30px; font-family:monospace; color:#888;">[SYS_ERROR] 3D Engine Init Failed.</div>`;
+                console.error(err);
+            }
         };
 
         // --- 模態框操作邏輯 ---
