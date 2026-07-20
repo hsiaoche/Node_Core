@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V8_Project_Admin_Stat_Sheet</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #050608;
+            --main-cyan: #00f3ff;
+            --alert-red: #ff003c;
+            --text-gray: #8a95a5;
+            --border-color: rgba(0, 243, 255, 0.2);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #ffffff;
+            font-family: 'Consolas', 'Courier New', monospace;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            /* 背景網格 */
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            overflow-x: hidden;
+            /* 背景持續漂移特效 */
+            animation: gridMove 30s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { background-position: 0 0; }
+            100% { background-position: -40px 40px; }
+        }
+
+        /* --- 載入介面 (Preloader) --- */
+        #preloader {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #030405;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.6s ease, visibility 0.6s;
+        }
+
+        .loader-terminal {
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .loader-text {
+            color: var(--main-cyan);
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            min-height: 20px;
+            letter-spacing: 1px;
+        }
+
+        .loader-bar-bg {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loader-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--main-cyan);
+            box-shadow: 0 0 10px var(--main-cyan);
+            transition: width 0.1s linear;
+        }
+
+        .loader-percent {
+            color: var(--text-gray);
+            font-size: 0.8em;
+            margin-top: 8px;
+            text-align: right;
+        }
+
+        /* --- 主容器與掃描線 --- */
+        .container {
+            width: 100%;
+            max-width: 900px;
+            border: 1px solid var(--border-color);
+            background: rgba(5, 6, 8, 0.95);
+            position: relative;
+            padding: 40px;
+            box-sizing: border-box;
+            /* 容器邊框呼吸燈 */
+            animation: containerGlow 4s ease-in-out infinite alternate;
+            overflow: hidden; /* 讓掃描線不出界 */
+        }
+
+        @keyframes containerGlow {
+            0% { box-shadow: inset 0 0 30px rgba(0, 243, 255, 0.01), 0 0 10px rgba(0, 243, 255, 0.02); }
+            100% { box-shadow: inset 0 0 60px rgba(0, 243, 255, 0.04), 0 0 20px rgba(0, 243, 255, 0.08); }
+        }
+
+        /* 持續運作的雷射掃描線 */
+        .scanline {
+            position: absolute;
+            top: -100px;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(to bottom, transparent, rgba(0, 243, 255, 0.1) 50%, transparent);
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 10;
+            animation: scan 5s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: -100px; }
+            100% { top: 100%; }
+        }
+
+        /* 四角定位括號 */
+        .container::before, .container::after {
+            content: ''; position: absolute; width: 20px; height: 20px; z-index: 2;
+        }
+        .container::before {
+            top: -1px; left: -1px;
+            border-top: 2px solid var(--main-cyan); border-left: 2px solid var(--main-cyan);
+        }
+        .container::after {
+            bottom: -1px; right: -1px;
+            border-bottom: 2px solid var(--main-cyan); border-right: 2px solid var(--main-cyan);
+        }
+
+        /* 控制動畫在開機完成後才觸發 */
+        .sys-fade-in { opacity: 0; transform: translateY(15px); }
+        body.boot-complete .sys-fade-in { animation: sysBoot 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.3s; }
+        .delay-3 { animation-delay: 0.5s; }
+        .delay-4 { animation-delay: 0.7s; }
+
+        @keyframes sysBoot { to { opacity: 1; transform: translateY(0); } }
+
+        /* --- 標題區 --- */
+        .header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 35px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            position: relative;
+            z-index: 2;
+        }
+
+        .title {
+            font-size: 1.6em;
+            color: var(--main-cyan);
+            font-weight: bold;
+            position: relative;
+            display: inline-block;
+            letter-spacing: 2px;
+        }
+
+        .title::after {
+            content: "V8_PROJECT_ADMIN_UNIT";
+            position: absolute;
+            left: 2px;
+            text-shadow: -2px 0 var(--alert-red);
+            top: 0;
+            color: var(--main-cyan);
+            background: rgba(5,6,8,0.9);
+            overflow: hidden;
+            animation: modernGlitch 4s infinite linear alternate-reverse;
+        }
+
+        @keyframes modernGlitch {
+            0%, 100% { clip-path: inset(100% 0 0 0); }
+            5% { clip-path: inset(10% 0 80% 0); }
+            10% { clip-path: inset(80% 0 10% 0); }
+            15% { clip-path: inset(30% 0 50% 0); }
+            20% { clip-path: inset(100% 0 0 0); }
+        }
+
+        .cursor-blink {
+            animation: blinker 1s step-end infinite;
+            color: var(--main-cyan);
+            font-weight: bold;
+        }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; position: relative; z-index: 2; }
+
+        /* --- 資料核心區塊 (動態強化) --- */
+        .data-core-box {
+            position: relative;
+            width: 100%; height: 220px;
+            border: 1px dashed var(--border-color);
+            background: rgba(0, 243, 255, 0.015);
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+        }
+
+        .core-ring {
+            width: 130px; height: 130px;
+            border: 1px dashed rgba(0, 243, 255, 0.3);
+            border-radius: 50%;
+            animation: spin 12s linear infinite;
+            display: flex; justify-content: center; align-items: center;
+            position: relative;
+        }
+
+        /* 新增：外圍軌道小衛星 */
+        .core-ring::before {
+            content: ''; position: absolute;
+            top: -3px; left: 50%;
+            width: 6px; height: 6px;
+            background: var(--main-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--main-cyan);
+        }
+
+        .core-inner {
+            width: 80px; height: 80px;
+            border: 1px solid rgba(0, 243, 255, 0.5);
+            border-radius: 50%;
+            animation: spin 8s linear infinite reverse;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .core-center {
+            width: 25px; height: 25px;
+            background: var(--main-cyan);
+            border-radius: 50%;
+            animation: corePulse 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes corePulse {
+            0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 15px var(--main-cyan); }
+            100% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 35px var(--main-cyan); }
+        }
+
+        .data-core-box::after {
+            content: "DATA_CORE_ACTIVE // SYS_OP";
+            position: absolute; bottom: 10px;
+            font-size: 0.75em; color: var(--main-cyan);
+            opacity: 0.6; letter-spacing: 1px;
+        }
+
+        .sys-tag {
+            background: var(--main-cyan); color: var(--bg-color);
+            padding: 4px 12px; font-weight: bold;
+            display: inline-block; margin-top: 20px; font-size: 0.9em;
+        }
+
+        /* --- 狀態條 (新增能量流動特效) --- */
+        .stat-group { margin-bottom: 22px; }
+        .stat-label {
+            font-size: 0.85em; color: var(--text-gray); margin-bottom: 6px;
+            display: flex; justify-content: space-between; letter-spacing: 0.5px;
+        }
+        .stat-bar-bg {
+            width: 100%; height: 6px; background: rgba(255,255,255,0.05);
+            position: relative;
+        }
+        
+        .stat-bar-fill {
+            width: 0%; height: 100%;
+            background: linear-gradient(90deg, var(--main-cyan) 0%, #ffffff 50%, var(--main-cyan) 100%);
+            background-size: 200% 100%;
+            box-shadow: 0 0 8px var(--main-cyan);
+            /* 等待載入完成後，先跑長度動畫，再疊加背景流動動畫 */
+            transition: width 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        body.boot-complete .stat-bar-fill {
+            width: var(--target-width);
+            animation: energyFlow 2.5s linear infinite;
+        }
+
+        .fill-red {
+            background: linear-gradient(90deg, var(--alert-red) 0%, #ff88a0 50%, var(--alert-red) 100%);
+            background-size: 200% 100%;
+            box-shadow: 0 0 8px var(--alert-red);
+        }
+
+        @keyframes energyFlow {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+
+        /* --- 下方雷達與規則區 --- */
+        .bottom-layout {
+            display: grid; grid-template-columns: 1fr 1.2fr; gap: 40px;
+            margin-top: 40px; border-top: 1px solid var(--border-color);
+            padding-top: 40px; position: relative; z-index: 2;
+        }
+
+        .radar-container { width: 100%; max-height: 250px; }
+
+        .rules-box {
+            background: rgba(0, 243, 255, 0.015);
+            border-left: 2px solid var(--main-cyan);
+            padding: 20px;
+            position: relative;
+            /* 規則區塊緩慢呼吸 */
+            animation: boxBreathe 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes boxBreathe {
+            0% { background: rgba(0, 243, 255, 0.01); box-shadow: inset 2px 0 10px rgba(0,243,255,0); }
+            100% { background: rgba(0, 243, 255, 0.03); box-shadow: inset 4px 0 15px rgba(0,243,255,0.05); }
+        }
+        
+        .rules-title {
+            color: var(--main-cyan); font-weight: bold;
+            margin-bottom: 15px; font-size: 1.1em; letter-spacing: 1px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        
+        /* 標題旁的小閃爍裝飾 */
+        .rules-title::before {
+            content: '■'; font-size: 0.8em;
+            animation: blinker 2s step-end infinite;
+        }
+
+        .rules-box ul { list-style-type: none; padding-left: 0; color: var(--text-gray); font-size: 0.85em; }
+        .rules-box li { margin-bottom: 12px; line-height: 1.6; position: relative; padding-left: 15px; }
+        .rules-box li::before { content: '>'; position: absolute; left: 0; color: var(--main-cyan); opacity: 0.7;}
+        .highlight-text { color: #fff; font-weight: normal; }
+
+        @media (max-width: 768px) {
+            .grid-layout, .bottom-layout { grid-template-columns: 1fr; gap: 30px; }
+            .bottom-layout { padding-top: 30px; }
+            .container { padding: 25px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 載入介面 -->
+    <div id="preloader">
+        <div class="loader-terminal">
+            <div class="loader-text" id="loader-text">Initialize Boot Sequence...</div>
+            <div class="loader-bar-bg"><div class="loader-bar-fill" id="loader-bar"></div></div>
+            <div class="loader-percent" id="loader-percent">0%</div>
+        </div>
+    </div>
+
+    <!-- 主介面 -->
+    <div class="container">
+        <!-- 持續雷射掃描線 -->
+        <div class="scanline"></div>
+
+        <div class="header sys-fade-in delay-1">
+            <div>
+                <span class="title">V8_PROJECT_ADMIN_UNIT</span><span class="cursor-blink">_</span>
+            </div>
+            <div style="color: var(--text-gray); font-size: 0.8em; letter-spacing: 1px;">
+                STATUS: ONLINE // UPTIME: <span id="uptime" style="color: #fff;">00:00:00</span>
+            </div>
+        </div>
+
+        <div class="grid-layout">
+            <div class="sys-fade-in delay-2">
+                <div class="data-core-box">
+                    <div class="core-ring">
+                        <div class="core-inner">
+                            <div class="core-center"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sys-tag">System_Admin (Lv.22)</div>
+                <p style="color: var(--text-gray); font-size: 0.85em; margin-top: 15px; line-height: 1.8;">
+                    CLASS: [雙棲節點] 資訊工程 / 地球科學<br>
+                    TARGET: AI & 編譯系統最佳化<br>
+                    LOC: Wenshan Dist, Taipei
+                </p>
+            </div>
+
+            <div class="sys-fade-in delay-3" style="display: flex; flex-direction: column; justify-content: center;">
+                <div class="stat-group">
+                    <div class="stat-label"><span>[Explore] 機車獨旅 / 露營野炊.exe</span><span>90%</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="--target-width: 90%;"></div></div>
+                </div>
+                <div class="stat-group">
+                    <div class="stat-label"><span>[Sim] 滿意工廠產線 / 傳說對決</span><span>85%</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="--target-width: 85%;"></div></div>
+                </div>
+                <div class="stat-group">
+                    <div class="stat-label"><span>[Core] C_Python_C++_編譯線程</span><span>95%</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="--target-width: 95%;"></div></div>
+                </div>
+                <div class="stat-group">
+                    <div class="stat-label"><span>[Sys_Alert] 高耗能社交排斥</span><span>MAX</span></div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill fill-red" style="--target-width: 100%;"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-layout sys-fade-in delay-4">
+            <div class="radar-container">
+                <canvas id="radarChart"></canvas>
+            </div>
+            
+            <div class="rules-box">
+                <div class="rules-title">SYSTEM_AGREEMENTS</div>
+                <ul>
+                    <li><span class="highlight-text">除錯協定：</span>發問前請先重讀題目與範例。指出具體卡關的節點，系統即會協助排除錯誤。</li>
+                    <li><span class="highlight-text">最佳化運轉：</span>不要求完美，但要求專注。達成每日最低進度標準，即視為運轉成功。</li>
+                    <li><span class="highlight-text">資源解鎖：</span>當日任務滿載，即解鎖待機模式，開放桌遊連線或個人自由時間。</li>
+                    <li><span class="highlight-text">共同默契：</span>維護系統和平，不干擾他人運作。底線之內，擁有絕對自由。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 階段 1：系統載入邏輯 ---
+        const bootLogs = [
+            "Mounting V8 Core Modules...",
+            "Loading Math & Chinese Debuggers...",
+            "Bypassing Social Protocols...",
+            "Allocating Tabletop Game Resources...",
+            "System Ready."
+        ];
+        
+        let logIndex = 0;
+        let progress = 0;
+        const textEl = document.getElementById('loader-text');
+        const barEl = document.getElementById('loader-bar');
+        const percentEl = document.getElementById('loader-percent');
+        const preloader = document.getElementById('preloader');
+
+        // 模擬進度條增長
+        const loadingInterval = setInterval(() => {
+            progress += Math.floor(Math.random() * 5) + 1; // 隨機跳動 1~5%
+            if (progress >= 100) progress = 100;
+            
+            barEl.style.width = progress + '%';
+            percentEl.textContent = progress + '%';
+
+            // 根據進度切換終端機文字
+            if (progress > 20 && logIndex === 0) { textEl.textContent = bootLogs[++logIndex]; }
+            if (progress > 50 && logIndex === 1) { textEl.textContent = bootLogs[++logIndex]; }
+            if (progress > 75 && logIndex === 2) { textEl.textContent = bootLogs[++logIndex]; }
+            if (progress >= 100 && logIndex === 3) { 
+                textEl.textContent = bootLogs[++logIndex];
+                clearInterval(loadingInterval);
+                
+                // 載入完成，延遲一下淡出遮罩並啟動主畫面
+                setTimeout(() => {
+                    preloader.style.opacity = '0';
+                    preloader.style.visibility = 'hidden';
+                    document.body.classList.add('boot-complete'); // 觸發主畫面 CSS 動畫
+                    initChart(); // 延遲繪製雷達圖，避免在遮罩後方已經畫完
+                }, 800);
+            }
+        }, 80); // 載入速度，越小越快
+
+        // --- 階段 2：主畫面邏輯 ---
+        // UPTIME 計時器
+        let seconds = 0;
+        setInterval(() => {
+            seconds++;
+            const hrs = String(Math.floor(seconds / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+            const secs = String(seconds % 60).padStart(2, '0');
+            document.getElementById('uptime').textContent = `${hrs}:${mins}:${secs}`;
+        }, 1000);
+
+        // 雷達圖初始化函數 (改為函式，等待載入完成才呼叫)
+        function initChart() {
+            Chart.defaults.color = '#8a95a5';
+            Chart.defaults.font.family = 'Consolas, monospace';
+
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['邏輯重構', '除錯能力', '中二耐性', '社交能耗', '國數理解', '全局規劃'],
+                    datasets: [{
+                        label: 'Admin_Stats',
+                        data: [95, 100, 60, 10, 90, 85],
+                        backgroundColor: 'rgba(0, 243, 255, 0.1)',
+                        borderColor: '#00f3ff',
+                        pointBackgroundColor: '#00f3ff',
+                        pointBorderColor: '#050608',
+                        pointBorderWidth: 2,
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#00f3ff',
+                        borderWidth: 1.5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    // 讓雷達圖展開的動畫慢一點，配合介面浮現
+                    animation: { duration: 2500, easing: 'easeOutQuart' },
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.05)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            pointLabels: {
+                                color: '#00f3ff',
+                                font: { size: 11, letterSpacing: 1 }
+                            },
+                            ticks: { display: false, min: 0, max: 100 }
+                        }
+                    },
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
