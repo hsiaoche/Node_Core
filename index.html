@@ -5,14 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Node_Core // System Root</title>
     
+<!-- 預載繪圖與 3D 核心套件 (注意載入順序) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- 預載繪圖套件 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/three"></script> <!-- 必須先載入 Three.js 核心 -->
     <script src="https://unpkg.com/3d-force-graph"></script>
-    <!-- 預載 WebGL 與 3D 文字渲染套件 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/3d-force-graph"></script>
-    <script src="https://unpkg.com/three-spritetext"></script>
+    <script src="https://unpkg.com/three-spritetext"></script> <!-- 才能載入文字擴充套件 -->
     
     <style>
         :root {
