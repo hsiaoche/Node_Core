@@ -5,20 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Node_Core // System Root</title>
     
-    <!-- 預載繪圖套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/standalone/umd/vis-network.min.js"></script>
     
     <style>
-        /* 現代極簡灰階變數 */
         :root {
-            --bg-base: #0a0a0a;
+            --bg-base: #050505; /* 更深的純黑底色，凸顯光點 */
             --text-primary: #e2e8f0;
             --text-muted: #888888;
             --border-subtle: #222222;
             --highlight: #ffffff;
             
-            /* 字體分層：標籤與數據用等寬，內文用無襯線以提升閱讀性 */
             --font-mono: 'Consolas', 'Courier New', monospace;
             --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
@@ -35,13 +32,12 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* 導覽列極簡化 */
         #sys-nav {
             border-bottom: 1px solid var(--border-subtle);
             padding: 20px 30px;
             display: flex;
             gap: 40px;
-            background: rgba(10, 10, 10, 0.9);
+            background: rgba(5, 5, 5, 0.9);
             font-family: var(--font-mono);
             z-index: 100;
         }
@@ -78,7 +74,6 @@
         const root = document.getElementById('app-root');
         const links = document.querySelectorAll('#sys-nav a');
 
-        // --- 核心路由引擎 ---
         async function loadView(hash) {
             const route = hash.replace('#', '') || 'admin';
             const filename = route === 'admin' ? 'view_admin.html' : 'view_nodes.html';
@@ -92,7 +87,6 @@
                     link.classList.toggle('active', link.getAttribute('href') === '#' + route);
                 });
 
-                // 防呆機制：推遲至下一個 Event Loop，確保 DOM 完全掛載後再執行渲染
                 setTimeout(() => {
                     if (route === 'admin' && typeof initAdminChart === 'function') initAdminChart();
                     if (route === 'nodes' && typeof initNodeNetwork === 'function') initNodeNetwork();
@@ -107,7 +101,6 @@
         window.addEventListener('hashchange', () => loadView(window.location.hash));
         loadView(window.location.hash);
 
-        // --- 全域渲染邏輯：雷達圖 ---
         window.initAdminChart = function() {
             const canvas = document.getElementById('radarChart');
             if (!canvas) return;
@@ -147,27 +140,20 @@
             });
         };
 
-        // --- 全域渲染邏輯：動態圖譜解析器 ---
         window.initNodeNetwork = async function() {
             const container = document.getElementById('network-container');
             if (!container) return;
 
             try {
-                // 讀取 JSON 並降維解析，來源已更新為 nodes.json
                 const res = await fetch('nodes.json');
                 const rawData = await res.json();
 
                 const nodesArray = [];
                 const edgesArray = [];
-                const traitCounts = {}; // 用於統計特徵出現頻率
+                const traitCounts = {};
 
-                // 第一次迭代：建立固定大小的學生節點，並計算特徵頻率
                 rawData.forEach(student => {
-                    nodesArray.push({
-                        id: student.id,
-                        label: student.name,
-                        group: 'student'
-                    });
+                    nodesArray.push({ id: student.id, label: student.name, group: 'student' });
 
                     if(student.traits) {
                         student.traits.forEach(t => {
@@ -178,53 +164,44 @@
 
                     if(student.familiar_with) {
                         student.familiar_with.forEach(target => {
-                            edgesArray.push({ from: student.id, to: target, dashes: true, width: 2, color: '#333' });
+                            edgesArray.push({ from: student.id, to: target, dashes: true, width: 1.5, color: 'rgba(255,255,255,0.3)' });
                         });
                     }
                 });
 
-                // 第二次迭代：根據統計次數動態生成特徵節點
-                const STUDENT_SIZE = 15;
                 Object.keys(traitCounts).forEach(t => {
                     const count = traitCounts[t];
-                    // 演算法：基礎大小 8，每個連接數 +2
-                    const dynamicSize = 8 + (count * 2);
-
-                    nodesArray.push({
-                        id: 'T_' + t,
-                        label: t,
-                        group: 'trait',
-                        size: dynamicSize
-                    });
+                    // 微縮化特徵節點，僅依靠亮度區分
+                    const dynamicSize = 4 + (count * 1.5);
+                    nodesArray.push({ id: 'T_' + t, label: t, group: 'trait', size: dynamicSize });
                 });
 
-                const data = {
-                    nodes: new vis.DataSet(nodesArray),
-                    edges: new vis.DataSet(edgesArray)
-                };
+                const data = { nodes: new vis.DataSet(nodesArray), edges: new vis.DataSet(edgesArray) };
 
                 const options = {
                     nodes: {
                         shape: "dot",
-                        borderWidth: 1.5,
-                        font: { face: "Inter, sans-serif", size: 11, vadjust: -8 }
+                        borderWidth: 0, // 拔除所有外框，營造純粹的光點感
+                        font: { face: "Inter, sans-serif", size: 10, vadjust: -12, color: "#555" } // 標籤文字大幅調暗，避免破壞幾何圖形
                     },
                     groups: {
-                        // 學生：實心純白，視覺量體最重，固定大小
                         student: { 
-                            size: STUDENT_SIZE,
-                            color: { background: "#ffffff", border: "#ffffff", highlight: { background: "#cccccc", border: "#fff" } },
-                            font: { color: "#ffffff", size: 12, vadjust: -10 }
+                            size: 8, // 縮小學生節點
+                            color: { background: "#ffffff" }
                         },
-                        // 特徵：深灰底色配灰邊，面積隨人數放大，但視覺中空不搶焦點
                         trait: { 
-                            color: { background: "#0a0a0a", border: "#555555" },
-                            font: { color: "#888888" }
+                            color: { background: "#666666" },
+                            font: { color: "#333333" } // 特徵文字極度低調
                         }
                     },
-                    edges: { color: "#222", width: 1, smooth: { type: "continuous" } },
+                    edges: { 
+                        color: "rgba(255, 255, 255, 0.15)", // 細緻且高透明度的直線
+                        width: 1, 
+                        smooth: false // 關鍵設定：強制關閉貝茲曲線，改為幾何直線
+                    },
                     physics: { 
-                        forceAtlas2Based: { gravitationalConstant: -90, centralGravity: 0.01, springLength: 120 }, 
+                        // 拉長距離，讓節點分佈更像星系散佈
+                        forceAtlas2Based: { gravitationalConstant: -120, centralGravity: 0.005, springLength: 150 }, 
                         solver: "forceAtlas2Based", 
                         timestep: 0.3 
                     }
