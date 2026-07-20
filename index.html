@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V8 // System Root</title>
+    <title>Node_Core // System Root</title>
     
     <!-- 預載繪圖套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -68,7 +68,7 @@
 <body>
 
     <nav id="sys-nav">
-        <a href="#admin" class="active">SYS_ADMIN_UNIT</a>
+        <a href="#admin" class="active">NODE_CORE_ADMIN</a>
         <a href="#nodes">NODE_TOPOLOGY</a>
     </nav>
 
@@ -153,41 +153,49 @@
             if (!container) return;
 
             try {
-                // 讀取 JSON 並降維解析
+                // 讀取 JSON 並降維解析，來源已更新為 nodes.json
                 const res = await fetch('nodes.json');
                 const rawData = await res.json();
 
                 const nodesArray = [];
                 const edgesArray = [];
-                const traitSet = new Set();
+                const traitCounts = {}; // 用於統計特徵出現頻率
 
+                // 第一次迭代：建立固定大小的學生節點，並計算特徵頻率
                 rawData.forEach(student => {
-                    // 建立學生節點
                     nodesArray.push({
                         id: student.id,
-                        label: `${student.name}\n${student.description}`,
+                        label: student.name,
                         group: 'student'
                     });
 
-                    // 處理共通特徵與連線
                     if(student.traits) {
                         student.traits.forEach(t => {
-                            traitSet.add(t);
+                            traitCounts[t] = (traitCounts[t] || 0) + 1;
                             edgesArray.push({ from: student.id, to: 'T_' + t });
                         });
                     }
 
-                    // 處理人際連線
                     if(student.familiar_with) {
                         student.familiar_with.forEach(target => {
-                            edgesArray.push({ from: student.id, to: target, dashes: true, width: 2 });
+                            edgesArray.push({ from: student.id, to: target, dashes: true, width: 2, color: '#333' });
                         });
                     }
                 });
 
-                // 生成過濾後的特徵樞紐節點
-                traitSet.forEach(t => {
-                    nodesArray.push({ id: 'T_' + t, label: t, group: 'trait' });
+                // 第二次迭代：根據統計次數動態生成特徵節點
+                const STUDENT_SIZE = 15;
+                Object.keys(traitCounts).forEach(t => {
+                    const count = traitCounts[t];
+                    // 演算法：基礎大小 8，每個連接數 +2
+                    const dynamicSize = 8 + (count * 2);
+
+                    nodesArray.push({
+                        id: 'T_' + t,
+                        label: t,
+                        group: 'trait',
+                        size: dynamicSize
+                    });
                 });
 
                 const data = {
@@ -197,16 +205,29 @@
 
                 const options = {
                     nodes: {
-                        shape: "dot", size: 12,
-                        font: { color: "#e2e8f0", face: "Inter, sans-serif", size: 12, vadjust: -6 },
-                        borderWidth: 1.5
+                        shape: "dot",
+                        borderWidth: 1.5,
+                        font: { face: "Inter, sans-serif", size: 11, vadjust: -8 }
                     },
                     groups: {
-                        student: { color: { background: "#1a1a1a", border: "#ffffff", highlight: { background: "#333", border: "#fff" } } },
-                        trait: { color: { background: "#0a0a0a", border: "#555" }, shape: "diamond", size: 8, font: { color: "#888", size: 11 } }
+                        // 學生：實心純白，視覺量體最重，固定大小
+                        student: { 
+                            size: STUDENT_SIZE,
+                            color: { background: "#ffffff", border: "#ffffff", highlight: { background: "#cccccc", border: "#fff" } },
+                            font: { color: "#ffffff", size: 12, vadjust: -10 }
+                        },
+                        // 特徵：深灰底色配灰邊，面積隨人數放大，但視覺中空不搶焦點
+                        trait: { 
+                            color: { background: "#0a0a0a", border: "#555555" },
+                            font: { color: "#888888" }
+                        }
                     },
-                    edges: { color: "#333", width: 1, smooth: { type: "continuous" } },
-                    physics: { forceAtlas2Based: { gravitationalConstant: -60, centralGravity: 0.01, springLength: 100 }, solver: "forceAtlas2Based", timestep: 0.3 }
+                    edges: { color: "#222", width: 1, smooth: { type: "continuous" } },
+                    physics: { 
+                        forceAtlas2Based: { gravitationalConstant: -90, centralGravity: 0.01, springLength: 120 }, 
+                        solver: "forceAtlas2Based", 
+                        timestep: 0.3 
+                    }
                 };
 
                 new vis.Network(container, data, options);
