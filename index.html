@@ -10,10 +10,11 @@
     
     <style>
         :root {
-            --bg-base: #050505; /* 更深的純黑底色，凸顯光點 */
+            --bg-base: #050505;
+            --bg-panel: #111111;
             --text-primary: #e2e8f0;
             --text-muted: #888888;
-            --border-subtle: #222222;
+            --border-subtle: #333333;
             --highlight: #ffffff;
             
             --font-mono: 'Consolas', 'Courier New', monospace;
@@ -36,11 +37,14 @@
             border-bottom: 1px solid var(--border-subtle);
             padding: 20px 30px;
             display: flex;
-            gap: 40px;
+            justify-content: space-between;
+            align-items: center;
             background: rgba(5, 5, 5, 0.9);
             font-family: var(--font-mono);
             z-index: 100;
         }
+
+        .nav-links { display: flex; gap: 40px; }
 
         #sys-nav a {
             color: var(--text-muted);
@@ -48,33 +52,120 @@
             font-size: 0.85em;
             letter-spacing: 2px;
             transition: color 0.2s ease;
+            cursor: pointer;
         }
 
         #sys-nav a:hover { color: var(--text-primary); }
         #sys-nav a.active { color: var(--highlight); border-bottom: 1px solid var(--highlight); padding-bottom: 4px; }
+        
+        .sys-btn { border: 1px dashed var(--border-subtle); padding: 4px 12px; }
+        .sys-btn:hover { border-color: var(--highlight); background: rgba(255,255,255,0.05); }
 
-        #app-root {
-            flex: 1;
-            position: relative;
-            overflow-y: auto;
-            overflow-x: hidden;
+        #app-root { flex: 1; position: relative; overflow-y: auto; overflow-x: hidden; }
+
+        /* 終端機風格編輯視窗 (Modal) */
+        #edit-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 999; justify-content: center; align-items: center;
         }
+        .modal-content {
+            background: var(--bg-panel); border: 1px solid var(--border-subtle);
+            width: 400px; padding: 30px; font-family: var(--font-mono);
+            position: relative;
+        }
+        .modal-content::before {
+            content: ''; position: absolute; top: -1px; left: -1px; width: 10px; height: 10px;
+            border-top: 2px solid var(--highlight); border-left: 2px solid var(--highlight);
+        }
+        .modal-header { font-size: 1.2em; color: var(--highlight); margin-bottom: 20px; border-bottom: 1px dashed var(--border-subtle); padding-bottom: 10px; }
+        
+        .tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+        .sys-tag { background: #222; color: var(--text-primary); padding: 4px 10px; font-size: 0.85em; display: flex; align-items: center; gap: 6px; }
+        .sys-tag span { cursor: pointer; color: #888; font-weight: bold; }
+        .sys-tag span:hover { color: #ff4444; }
+
+        .input-group { display: flex; gap: 10px; margin-bottom: 25px; }
+        .input-group input { flex: 1; background: transparent; border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 8px; font-family: var(--font-mono); outline: none; }
+        .input-group input:focus { border-color: var(--highlight); }
+        .input-group button { background: var(--highlight); color: #000; border: none; padding: 0 15px; cursor: pointer; font-family: var(--font-mono); font-weight: bold; }
+
+        .modal-actions { display: flex; justify-content: flex-end; gap: 15px; }
+        .modal-actions button { background: transparent; color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 6px 15px; cursor: pointer; font-family: var(--font-mono); transition: 0.2s; }
+        .modal-actions button:hover { color: var(--text-primary); border-color: var(--text-primary); }
     </style>
 </head>
 <body>
 
     <nav id="sys-nav">
-        <a href="#admin" class="active">NODE_CORE_ADMIN</a>
-        <a href="#nodes">NODE_TOPOLOGY</a>
+        <div class="nav-links">
+            <a href="#admin" class="active">NODE_CORE_ADMIN</a>
+            <a href="#nodes">NODE_TOPOLOGY</a>
+        </div>
+        <div>
+            <a class="sys-btn" onclick="exportData()">[ EXPORT_DATA ]</a>
+        </div>
     </nav>
 
     <div id="app-root"></div>
 
+    <!-- 節點編輯器 Modal -->
+    <div id="edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">TARGET: <span id="modal-node-name">SYS_ADMIN</span></div>
+            <div style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 10px;">> CURRENT_TRAITS:</div>
+            <div class="tag-list" id="modal-tag-list"></div>
+            
+            <div class="input-group">
+                <input type="text" id="new-trait-input" placeholder="Enter new trait..." onkeypress="if(event.key === 'Enter') addTrait()">
+                <button onclick="addTrait()">ADD</button>
+            </div>
+
+            <div class="modal-actions">
+                <button onclick="closeModal()">[ CANCEL ]</button>
+                <button style="border-color: var(--highlight); color: var(--highlight);" onclick="saveNodeData()">[ COMMIT ]</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // --- 核心狀態管理 (State Management) ---
+        let globalNodeData = [];
+        let currentEditNodeId = null;
+        let tempTraits = [];
+
+        async function initDataStore() {
+            const cached = localStorage.getItem('v8_node_data');
+            if (cached) {
+                globalNodeData = JSON.parse(cached);
+            } else {
+                try {
+                    const res = await fetch('nodes.json');
+                    globalNodeData = await res.json();
+                    localStorage.setItem('v8_node_data', JSON.stringify(globalNodeData));
+                } catch (e) {
+                    console.error("Data load failed", e);
+                }
+            }
+        }
+
+        // --- 檔案導出協定 ---
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(globalNodeData, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "nodes.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        // --- 路由引擎 ---
         const root = document.getElementById('app-root');
-        const links = document.querySelectorAll('#sys-nav a');
+        const links = document.querySelectorAll('.nav-links a');
 
         async function loadView(hash) {
+            if(globalNodeData.length === 0) await initDataStore();
+
             const route = hash.replace('#', '') || 'admin';
             const filename = route === 'admin' ? 'view_admin.html' : 'view_nodes.html';
 
@@ -83,31 +174,27 @@
                 if (!response.ok) throw new Error('Module fetch failed');
                 root.innerHTML = await response.text();
                 
-                links.forEach(link => {
-                    link.classList.toggle('active', link.getAttribute('href') === '#' + route);
-                });
+                links.forEach(link => { link.classList.toggle('active', link.getAttribute('href') === '#' + route); });
 
                 setTimeout(() => {
-                    if (route === 'admin' && typeof initAdminChart === 'function') initAdminChart();
-                    if (route === 'nodes' && typeof initNodeNetwork === 'function') initNodeNetwork();
+                    if (route === 'admin' && typeof window.initAdminChart === 'function') window.initAdminChart();
+                    if (route === 'nodes' && typeof window.initNodeNetwork === 'function') window.initNodeNetwork();
                 }, 50);
 
             } catch (error) {
                 root.innerHTML = `<div style="padding: 30px; font-family: monospace; color: #888;">[SYS_ERROR] Missing module: ${filename}</div>`;
-                console.error(error);
             }
         }
 
         window.addEventListener('hashchange', () => loadView(window.location.hash));
         loadView(window.location.hash);
 
+        // --- 雷達圖渲染 ---
         window.initAdminChart = function() {
             const canvas = document.getElementById('radarChart');
             if (!canvas) return;
-            
             Chart.defaults.color = '#888';
             Chart.defaults.font.family = "'Inter', sans-serif";
-
             new Chart(canvas.getContext('2d'), {
                 type: 'radar',
                 data: {
@@ -115,114 +202,131 @@
                     datasets: [{
                         data: [95, 100, 60, 10, 90, 85],
                         backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        borderColor: '#ffffff',
-                        pointBackgroundColor: '#ffffff',
-                        pointBorderColor: '#0a0a0a',
-                        pointBorderWidth: 2,
-                        pointHoverBackgroundColor: '#0a0a0a',
-                        pointHoverBorderColor: '#ffffff',
-                        borderWidth: 1.5,
+                        borderColor: '#ffffff', pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#0a0a0a', pointBorderWidth: 2, borderWidth: 1.5
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                            pointLabels: { color: '#e2e8f0', font: { size: 12 } },
-                            ticks: { display: false, min: 0, max: 100 }
-                        }
-                    },
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { r: { angleLines: { color: 'rgba(255, 255, 255, 0.1)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' }, pointLabels: { color: '#e2e8f0', font: { size: 12 } }, ticks: { display: false, min: 0, max: 100 } } },
                     plugins: { legend: { display: false } }
                 }
             });
         };
 
-        window.initNodeNetwork = async function() {
+        // --- 動態圖譜渲染與事件綁定 ---
+        let networkInstance = null;
+        window.initNodeNetwork = function() {
             const container = document.getElementById('network-container');
             if (!container) return;
 
-            try {
-                const res = await fetch('nodes.json');
-                const rawData = await res.json();
+            const nodesArray = [];
+            const edgesArray = [];
+            const traitCounts = {};
 
-                const nodesArray = [];
-                const edgesArray = [];
-                const traitCounts = {};
+            globalNodeData.forEach(student => {
+                let nodeGroup = student.id === 'SYS_ADMIN' ? 'admin' : 'student';
+                nodesArray.push({ id: student.id, label: student.name, group: nodeGroup });
 
-                rawData.forEach(student => {
-                    let nodeGroup = student.id === 'SYS_ADMIN' ? 'admin' : 'student';
-                    nodesArray.push({ id: student.id, label: student.name, group: nodeGroup });
+                if(student.traits) {
+                    student.traits.forEach(t => {
+                        traitCounts[t] = (traitCounts[t] || 0) + 1;
+                        edgesArray.push({ from: student.id, to: 'T_' + t });
+                    });
+                }
+                if(student.familiar_with) {
+                    student.familiar_with.forEach(target => {
+                        edgesArray.push({ from: student.id, to: target, dashes: true, width: 1.5, color: 'rgba(255,255,255,0.2)' });
+                    });
+                }
+            });
 
-                    if(student.traits) {
-                        student.traits.forEach(t => {
-                            traitCounts[t] = (traitCounts[t] || 0) + 1;
-                            edgesArray.push({ from: student.id, to: 'T_' + t });
-                        });
-                    }
+            Object.keys(traitCounts).forEach(t => {
+                const count = traitCounts[t];
+                const dynamicSize = 4 + (count * 1.5);
+                nodesArray.push({ id: 'T_' + t, label: t, group: 'trait', size: dynamicSize });
+            });
 
-                    if(student.familiar_with) {
-                        student.familiar_with.forEach(target => {
-                            edgesArray.push({ from: student.id, to: target, dashes: true, width: 1.5, color: 'rgba(255,255,255,0.3)' });
-                        });
-                    }
-                });
+            const data = { nodes: new vis.DataSet(nodesArray), edges: new vis.DataSet(edgesArray) };
+            const options = {
+                nodes: { shape: "dot", borderWidth: 0, font: { face: "Inter, sans-serif", size: 13, color: "#e2e8f0", vadjust: -15 } },
+                groups: {
+                    admin: { size: 20, color: { background: "#ffffff", highlight: { background: "#ffffff" } }, font: { color: "#ffffff", size: 15, face: "Consolas, monospace" } },
+                    student: { size: 12, color: { background: "#cccccc" } },
+                    trait: { color: { background: "#333333" }, font: { color: "#888888", size: 10, vadjust: -10 } }
+                },
+                edges: { color: "rgba(255, 255, 255, 0.2)", width: 1, smooth: false },
+                interaction: { hover: true },
+                physics: { forceAtlas2Based: { gravitationalConstant: -180, centralGravity: 0.015, springLength: 200 }, solver: "forceAtlas2Based", timestep: 0.3 }
+            };
 
-                Object.keys(traitCounts).forEach(t => {
-                    const count = traitCounts[t];
-                    // 微縮化特徵節點，僅依靠亮度區分
-                    const dynamicSize = 4 + (count * 1.5);
-                    nodesArray.push({ id: 'T_' + t, label: t, group: 'trait', size: dynamicSize });
-                });
+            if (networkInstance) networkInstance.destroy();
+            networkInstance = new vis.Network(container, data, options);
 
-                const data = { nodes: new vis.DataSet(nodesArray), edges: new vis.DataSet(edgesArray) };
-
-                const options = {
-                    nodes: {
-                        shape: "dot",
-                        borderWidth: 0,
-                        // 關鍵字：字體亮度大幅提升、移除過度下沉的 vadjust
-                        font: { face: "Inter, sans-serif", size: 13, color: "#e2e8f0", vadjust: -15 }
-                    },
-                    groups: {
-                        // 系統核心：最大量體，純白發光，建立絕對的視覺中心
-                        admin: { 
-                            size: 20, 
-                            color: { background: "#ffffff", highlight: { background: "#ffffff" } },
-                            font: { color: "#ffffff", size: 15, face: "Consolas, monospace" }
-                        },
-                        // 學生節點：量體放大近一倍，保留辨識度
-                        student: { 
-                            size: 14, 
-                            color: { background: "#cccccc" }
-                        },
-                        // 特徵節點：維持輔助角色與低調字體，不搶主節點視覺
-                        trait: { 
-                            color: { background: "#333333" },
-                            font: { color: "#888888", size: 10, vadjust: -10 } 
-                        }
-                    },
-                    edges: { 
-                        color: "rgba(255, 255, 255, 0.25)", // 稍微調亮連線透明度
-                        width: 1.5, 
-                        smooth: false 
-                    },
-                    physics: { 
-                        // 關鍵字：擴大排斥力與彈簧長度，防止大節點互相碰撞重疊
-                        forceAtlas2Based: { gravitationalConstant: -180, centralGravity: 0.015, springLength: 200 }, 
-                        solver: "forceAtlas2Based", 
-                        timestep: 0.3 
-                    }
-                };
-
-                new vis.Network(container, data, options);
-            } catch (err) {
-                container.innerHTML = `<div style="padding:30px; font-family:monospace; color:#888;">[SYS_ERROR] Failed to parse JSON data.</div>`;
-                console.error(err);
-            }
+            // 綁定點擊編輯事件
+            networkInstance.on("click", function (params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    if (!nodeId.startsWith('T_')) openModal(nodeId); // 排除特徵節點，只編輯實體
+                }
+            });
         };
+
+        // --- 模態框操作邏輯 ---
+        function openModal(nodeId) {
+            const targetNode = globalNodeData.find(n => n.id === nodeId);
+            if (!targetNode) return;
+            
+            currentEditNodeId = nodeId;
+            tempTraits = [...(targetNode.traits || [])];
+            
+            document.getElementById('modal-node-name').textContent = targetNode.name;
+            renderModalTags();
+            
+            document.getElementById('edit-modal').style.display = 'flex';
+            document.getElementById('new-trait-input').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+            document.getElementById('new-trait-input').value = '';
+            currentEditNodeId = null;
+        }
+
+        function renderModalTags() {
+            const container = document.getElementById('modal-tag-list');
+            container.innerHTML = '';
+            tempTraits.forEach((t, index) => {
+                container.innerHTML += `<div class="sys-tag">${t} <span onclick="removeTrait(${index})">×</span></div>`;
+            });
+        }
+
+        function addTrait() {
+            const input = document.getElementById('new-trait-input');
+            const val = input.value.trim();
+            if (val && !tempTraits.includes(val)) {
+                tempTraits.push(val);
+                renderModalTags();
+                input.value = '';
+            }
+        }
+
+        function removeTrait(index) {
+            tempTraits.splice(index, 1);
+            renderModalTags();
+        }
+
+        function saveNodeData() {
+            const targetIndex = globalNodeData.findIndex(n => n.id === currentEditNodeId);
+            if (targetIndex !== -1) {
+                globalNodeData[targetIndex].traits = [...tempTraits];
+                // 寫入快取
+                localStorage.setItem('v8_node_data', JSON.stringify(globalNodeData));
+                closeModal();
+                // 重新渲染圖譜
+                window.initNodeNetwork();
+            }
+        }
     </script>
 </body>
 </html>
