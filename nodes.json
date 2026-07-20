@@ -1,5 +1,11 @@
 [
   {
+    "id": "SYS_ADMIN",
+    "name": "Admin_Unit",
+    "traits": ["系統核心"],
+    "familiar_with": ["N1", "N2", "N3", "N4", "N5", "N6", "N7"]
+  },
+  {
     "id": "N1",
     "name": "Node01",
     "description": "Roblox / 3螢幕",
