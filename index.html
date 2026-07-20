@@ -66,6 +66,9 @@
 
         #app-root { flex: 1; position: relative; overflow-y: auto; overflow-x: hidden; }
 
+        /* [關鍵修正] 強制給予 3D 容器物理高度，避免空間塌陷導致黑畫面 */
+        #network-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+
         /* 終端機風格編輯視窗 (Modal) */
         #edit-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -145,10 +148,11 @@
             } else {
                 try {
                     const res = await fetch('nodes.json');
+                    if (!res.ok) throw new Error("Network response was not ok");
                     globalNodeData = await res.json();
                     localStorage.setItem('v8_node_data', JSON.stringify(globalNodeData));
                 } catch (e) {
-                    console.error("[SYS_ERROR] Data load failed", e);
+                    console.error("[SYS_ERROR] Data load failed. (CORS issue if running directly from file://?)", e);
                 }
             }
         }
@@ -168,8 +172,22 @@
         const root = document.getElementById('app-root');
         const links = document.querySelectorAll('.nav-links a');
 
+        // [關鍵修正] 建立全域參照以利切換時卸載資源
+        let networkInstance = null;
+        let networkInterval = null;
+
         async function loadView(hash) {
             if(globalNodeData.length === 0) await initDataStore();
+
+            // [關鍵修正] Teardown Phase：覆蓋 DOM 前，先釋放舊資源與清除計時器
+            if (networkInterval) {
+                clearInterval(networkInterval);
+                networkInterval = null;
+            }
+            if (networkInstance && typeof networkInstance._destructor === 'function') {
+                networkInstance._destructor();
+                networkInstance = null;
+            }
 
             const route = hash.replace('#', '') || 'admin';
             const filename = route === 'admin' ? 'view_admin.html' : 'view_nodes.html';
@@ -217,9 +235,6 @@
                 }
             });
         };
-
-        // --- 動態圖譜渲染與事件綁定 ---
-        let networkInstance = null;
         
         window.initNodeNetwork = function() {
             const container = document.getElementById('network-container');
@@ -233,7 +248,7 @@
             // 第一階段：建立主要實體節點
             globalNodeData.forEach(student => {
                 let nodeGroup = student.id === 'SYS_ADMIN' ? 'admin' : 'student';
-                nodesMap.set(student.id, { id: student.id, label: student.name, group: nodeGroup });
+                nodesMap.set(student.id, { id: student.id, label: student.name || student.id, group: nodeGroup });
             });
         
             // 第二階段：處理特徵與人際連結
@@ -282,7 +297,8 @@
                     })
                     .nodeThreeObjectExtend(true)
                     .nodeThreeObject(node => {
-                        const sprite = new SpriteText(node.label);
+                        // [關鍵防呆] 確保 label 有值，否則 Three.js 內部建立 TextGeometry 時會 crash
+                        const sprite = new SpriteText(node.label || 'Unknown');
                         sprite.color = node.group === 'admin' ? '#ffffff' : '#aaaaaa';
                         sprite.textHeight = node.group === 'admin' ? 6 : 3;
                         
@@ -295,9 +311,9 @@
                     .linkWidth(1.5)
                     .showNavInfo(false);
 
-                // 啟動緩慢自轉
+                // [關鍵修正] 使用全域變數綁定，確保切換路由時可以被清除
                 let angle = 0;
-                setInterval(() => {
+                networkInterval = setInterval(() => {
                     if (networkInstance) {
                         networkInstance.cameraPosition({
                             x: 250 * Math.sin(angle),
@@ -322,7 +338,7 @@
             currentEditNodeId = nodeId;
             tempTraits = [...(targetNode.traits || [])];
             
-            document.getElementById('modal-node-name').textContent = targetNode.name;
+            document.getElementById('modal-node-name').textContent = targetNode.name || targetNode.id;
             renderModalTags();
             
             document.getElementById('edit-modal').style.display = 'flex';
@@ -364,6 +380,10 @@
                 globalNodeData[targetIndex].traits = [...tempTraits];
                 localStorage.setItem('v8_node_data', JSON.stringify(globalNodeData));
                 closeModal();
+                
+                // 重繪前同樣需要 Teardown
+                if (networkInterval) clearInterval(networkInterval);
+                if (networkInstance) networkInstance._destructor();
                 window.initNodeNetwork();
             }
         }
