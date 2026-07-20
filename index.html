@@ -9,6 +9,10 @@
     <!-- 預載繪圖套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/3d-force-graph"></script>
+    <!-- 預載 WebGL 與 3D 文字渲染套件 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/3d-force-graph"></script>
+    <script src="https://unpkg.com/three-spritetext"></script>
     
     <style>
         :root {
@@ -256,26 +260,38 @@
                     const count = traitCounts[t];
                     nodesArray.push({ id: 'T_' + t, label: t, group: 'trait', size: 4 + (count * 1.5) });
                 });
-
-                // 第三階段：啟動 3D 渲染引擎並設定星空自轉
+                // 第三階段：啟動 3D 渲染引擎與高解析度設定
                 const Graph = ForceGraph3D()(container)
                     .graphData({ nodes: nodesArray, links: linksArray })
                     .backgroundColor('#050505')
-                    .nodeLabel('label')
+                    // 1. 解決粗糙感：將幾何切面解析度大幅拉高至 32
+                    .nodeResolution(32) 
                     .nodeColor(node => {
                         if (node.group === 'admin') return '#ffffff';
                         if (node.group === 'student') return '#cccccc';
                         return '#333333';
                     })
                     .nodeVal(node => {
-                        // 設定 3D 球體量體
                         if (node.group === 'admin') return 18;
                         if (node.group === 'student') return 8;
                         return node.size || 3; 
                     })
+                    // 2. 解決文字丟失：保留球體，並疊加 Sprite 實體文字
+                    .nodeThreeObjectExtend(true)
+                    .nodeThreeObject(node => {
+                        const sprite = new SpriteText(node.label);
+                        sprite.color = node.group === 'admin' ? '#ffffff' : '#aaaaaa';
+                        sprite.textHeight = node.group === 'admin' ? 6 : 3;
+                        
+                        // 動態計算 Y 軸偏移量，讓文字懸浮在球體上方
+                        const offset = node.group === 'admin' ? 18 : (node.group === 'student' ? 8 : 4);
+                        sprite.position.y = offset + 3; 
+                        
+                        return sprite;
+                    })
                     .linkColor(() => 'rgba(255, 255, 255, 0.2)')
-                    .linkWidth(1)
-                    .showNavInfo(false); // 關閉底層的操作提示文字
+                    .linkWidth(1.5)
+                    .showNavInfo(false);
 
                 // 啟動緩慢自轉，營造系統待機感
                 let angle = 0;
