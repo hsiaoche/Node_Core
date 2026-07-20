@@ -5,128 +5,216 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>V8 // System Root</title>
     
-    <!-- 預先載入共用函式庫，避免切換視圖時重複 Request -->
+    <!-- 預載繪圖套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/standalone/umd/vis-network.min.js"></script>
     
     <style>
-        /* 黑白簡約全域變數 */
+        /* 現代極簡灰階變數 */
         :root {
-            --bg-color: #050505;
-            --fg-color: #e0e0e0;
-            --border-color: #333333;
+            --bg-base: #0a0a0a;
+            --text-primary: #e2e8f0;
+            --text-muted: #888888;
+            --border-subtle: #222222;
             --highlight: #ffffff;
-            --dim: #666666;
+            
+            /* 字體分層：標籤與數據用等寬，內文用無襯線以提升閱讀性 */
+            --font-mono: 'Consolas', 'Courier New', monospace;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--fg-color);
-            font-family: 'Consolas', 'Courier New', monospace;
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
             margin: 0;
             display: flex;
             flex-direction: column;
             height: 100vh;
-            overflow: hidden; /* 防止主畫面出現滾動條 */
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* 系統導覽列 */
+        /* 導覽列極簡化 */
         #sys-nav {
-            border-bottom: 1px solid var(--border-color);
-            padding: 15px 25px;
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 20px 30px;
             display: flex;
-            gap: 30px;
-            background: #0a0a0a;
+            gap: 40px;
+            background: rgba(10, 10, 10, 0.9);
+            font-family: var(--font-mono);
             z-index: 100;
         }
 
         #sys-nav a {
-            color: var(--dim);
+            color: var(--text-muted);
             text-decoration: none;
-            font-size: 0.9em;
+            font-size: 0.85em;
             letter-spacing: 2px;
-            transition: color 0.2s;
+            transition: color 0.2s ease;
         }
 
-        #sys-nav a:hover {
-            color: var(--fg-color);
-        }
+        #sys-nav a:hover { color: var(--text-primary); }
+        #sys-nav a.active { color: var(--highlight); border-bottom: 1px solid var(--highlight); padding-bottom: 4px; }
 
-        #sys-nav a.active {
-            color: var(--highlight);
-            font-weight: bold;
-            border-bottom: 2px solid var(--highlight);
-            padding-bottom: 5px;
-        }
-
-        /* 視圖載入區 (View Container) */
         #app-root {
             flex: 1;
             position: relative;
-            overflow-y: auto; /* 允許內部內容滾動 */
+            overflow-y: auto;
             overflow-x: hidden;
-            background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            background-size: 30px 30px;
         }
     </style>
 </head>
 <body>
 
     <nav id="sys-nav">
-        <a href="#admin" class="active">[ SYS_ADMIN_UNIT ]</a>
-        <a href="#nodes">[ NODE_TOPOLOGY ]</a>
+        <a href="#admin" class="active">SYS_ADMIN_UNIT</a>
+        <a href="#nodes">NODE_TOPOLOGY</a>
     </nav>
 
-    <!-- 所有的 view_*.html 內容都會被動態注入到這裡 -->
     <div id="app-root"></div>
 
     <script>
         const root = document.getElementById('app-root');
         const links = document.querySelectorAll('#sys-nav a');
 
-        // 核心路由引擎 (Router Engine)
+        // --- 核心路由引擎 ---
         async function loadView(hash) {
-            // 解析目標路由，預設為 admin
             const route = hash.replace('#', '') || 'admin';
             const filename = route === 'admin' ? 'view_admin.html' : 'view_nodes.html';
 
             try {
-                // 非同步讀取 HTML 模板
                 const response = await fetch(filename);
                 if (!response.ok) throw new Error('Module fetch failed');
-                const htmlTemplate = await response.text();
+                root.innerHTML = await response.text();
                 
-                // 注入 DOM Tree
-                root.innerHTML = htmlTemplate;
-
-                // 更新導覽列 Active 狀態
                 links.forEach(link => {
-                    if (link.getAttribute('href') === '#' + route) {
-                        link.classList.add('active');
-                    } else {
-                        link.classList.remove('active');
-                    }
+                    link.classList.toggle('active', link.getAttribute('href') === '#' + route);
                 });
 
-                // --- [ 注意：這裡存在一個底層執行的盲點 ] ---
-                // 透過 innerHTML 注入的 <script> 標籤，瀏覽器基於安全性考量不會執行。
-                // 必須在此處手動呼叫初始化函式
-                if (route === 'admin' && typeof initAdminChart === 'function') initAdminChart();
-                if (route === 'nodes' && typeof initNodeNetwork === 'function') initNodeNetwork();
+                // 防呆機制：推遲至下一個 Event Loop，確保 DOM 完全掛載後再執行渲染
+                setTimeout(() => {
+                    if (route === 'admin' && typeof initAdminChart === 'function') initAdminChart();
+                    if (route === 'nodes' && typeof initNodeNetwork === 'function') initNodeNetwork();
+                }, 50);
 
             } catch (error) {
-                root.innerHTML = `<div style="padding: 20px; color: #ff3333;">[SYS_ERROR] Missing module: ${filename}</div>`;
+                root.innerHTML = `<div style="padding: 30px; font-family: monospace; color: #888;">[SYS_ERROR] Missing module: ${filename}</div>`;
                 console.error(error);
             }
         }
 
-        // 監聽網址 Hash 變化 (攔截上一頁/下一頁與點擊)
         window.addEventListener('hashchange', () => loadView(window.location.hash));
-        
-        // 系統啟動，載入初始畫面
         loadView(window.location.hash);
+
+        // --- 全域渲染邏輯：雷達圖 ---
+        window.initAdminChart = function() {
+            const canvas = document.getElementById('radarChart');
+            if (!canvas) return;
+            
+            Chart.defaults.color = '#888';
+            Chart.defaults.font.family = "'Inter', sans-serif";
+
+            new Chart(canvas.getContext('2d'), {
+                type: 'radar',
+                data: {
+                    labels: ['邏輯重構', '除錯能力', '中二耐性', '社交能耗', '國數理解', '全局規劃'],
+                    datasets: [{
+                        data: [95, 100, 60, 10, 90, 85],
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        borderColor: '#ffffff',
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#0a0a0a',
+                        pointBorderWidth: 2,
+                        pointHoverBackgroundColor: '#0a0a0a',
+                        pointHoverBorderColor: '#ffffff',
+                        borderWidth: 1.5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            pointLabels: { color: '#e2e8f0', font: { size: 12 } },
+                            ticks: { display: false, min: 0, max: 100 }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        };
+
+        // --- 全域渲染邏輯：動態圖譜解析器 ---
+        window.initNodeNetwork = async function() {
+            const container = document.getElementById('network-container');
+            if (!container) return;
+
+            try {
+                // 讀取 JSON 並降維解析
+                const res = await fetch('v8_entities.json');
+                const rawData = await res.json();
+
+                const nodesArray = [];
+                const edgesArray = [];
+                const traitSet = new Set();
+
+                rawData.forEach(student => {
+                    // 建立學生節點
+                    nodesArray.push({
+                        id: student.id,
+                        label: `${student.name}\n${student.description}`,
+                        group: 'student'
+                    });
+
+                    // 處理共通特徵與連線
+                    if(student.traits) {
+                        student.traits.forEach(t => {
+                            traitSet.add(t);
+                            edgesArray.push({ from: student.id, to: 'T_' + t });
+                        });
+                    }
+
+                    // 處理人際連線
+                    if(student.familiar_with) {
+                        student.familiar_with.forEach(target => {
+                            edgesArray.push({ from: student.id, to: target, dashes: true, width: 2 });
+                        });
+                    }
+                });
+
+                // 生成過濾後的特徵樞紐節點
+                traitSet.forEach(t => {
+                    nodesArray.push({ id: 'T_' + t, label: t, group: 'trait' });
+                });
+
+                const data = {
+                    nodes: new vis.DataSet(nodesArray),
+                    edges: new vis.DataSet(edgesArray)
+                };
+
+                const options = {
+                    nodes: {
+                        shape: "dot", size: 12,
+                        font: { color: "#e2e8f0", face: "Inter, sans-serif", size: 12, vadjust: -6 },
+                        borderWidth: 1.5
+                    },
+                    groups: {
+                        student: { color: { background: "#1a1a1a", border: "#ffffff", highlight: { background: "#333", border: "#fff" } } },
+                        trait: { color: { background: "#0a0a0a", border: "#555" }, shape: "diamond", size: 8, font: { color: "#888", size: 11 } }
+                    },
+                    edges: { color: "#333", width: 1, smooth: { type: "continuous" } },
+                    physics: { forceAtlas2Based: { gravitationalConstant: -60, centralGravity: 0.01, springLength: 100 }, solver: "forceAtlas2Based", timestep: 0.3 }
+                };
+
+                new vis.Network(container, data, options);
+            } catch (err) {
+                container.innerHTML = `<div style="padding:30px; font-family:monospace; color:#888;">[SYS_ERROR] Failed to parse JSON data.</div>`;
+                console.error(err);
+            }
+        };
     </script>
 </body>
 </html>
