@@ -132,8 +132,10 @@
         let globalNodeData = [];
         let currentEditNodeId = null;
         let tempTraits = [];
-
         async function initDataStore() {
+            // 暴力清除快取，強迫系統讀取最新的 nodes.json
+            localStorage.removeItem('v8_node_data'); 
+            
             const cached = localStorage.getItem('v8_node_data');
             if (cached) {
                 globalNodeData = JSON.parse(cached);
@@ -223,20 +225,30 @@
             const nodesArray = [];
             const edgesArray = [];
             const traitCounts = {};
-
             globalNodeData.forEach(student => {
                 let nodeGroup = student.id === 'SYS_ADMIN' ? 'admin' : 'student';
                 nodesArray.push({ id: student.id, label: student.name, group: nodeGroup });
-
+            
                 if(student.traits) {
                     student.traits.forEach(t => {
                         traitCounts[t] = (traitCounts[t] || 0) + 1;
-                        edgesArray.push({ from: student.id, to: 'T_' + t });
+                        // 衛星軌道：標籤緊吸附學生，距離 60
+                        edgesArray.push({ from: student.id, to: 'T_' + t, length: 60 });
                     });
                 }
+                
                 if(student.familiar_with) {
                     student.familiar_with.forEach(target => {
-                        edgesArray.push({ from: student.id, to: target, dashes: true, width: 1.5, color: 'rgba(255,255,255,0.2)' });
+                        // 軌道判定：SYS_ADMIN 核心推力 300，學生人際推力 150
+                        let edgeLength = student.id === 'SYS_ADMIN' ? 300 : 150;
+                        edgesArray.push({ 
+                            from: student.id, 
+                            to: target, 
+                            dashes: true, 
+                            width: 1.5, 
+                            color: 'rgba(255,255,255,0.2)',
+                            length: edgeLength 
+                        });
                     });
                 }
             });
