@@ -1,0 +1,16 @@
+<style>
+    /* 確保容器扣除上方導覽列高度，避免出現滾動條 */
+    #network-container {
+        width: 100%;
+        height: calc(100vh - 54px); 
+        background-color: #050505;
+        position: relative;
+    }
+    
+    /* 客製化 vis-network 預設的焦點外框，保持極簡 */
+    .vis-network:focus {
+        outline: none;
+    }
+</style>
+
+<div id="network-container"></div>
