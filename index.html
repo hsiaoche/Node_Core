@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>V8_Node Reconstruction Project</title>
+  <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <style>
+    body {
+      background-color: #121212; /* 深灰/純黑背景 */
+      color: #e0e0e0;
+      font-family: "Courier New", Courier, monospace; /* 終端機風格等寬字體 */
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #header {
+      padding: 15px 20px;
+      background-color: #1a1a1a;
+      border-bottom: 1px solid #333;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      z-index: 10;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: #4af626; /* 終端機綠 */
+      letter-spacing: 2px;
+    }
+    #network-container {
+      flex: 1;
+      width: 100%;
+      background-color: #0a0a0a;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="header">
+    <h1>> V8_NODE_PROJECT // ENTITY_RELATIONSHIP_MAP</h1>
+  </div>
+  <div id="network-container"></div>
+
+  <script type="text/javascript">
+    // 1. 定義節點陣列 (Nodes)
+    // 將學生設為核心節點，將興趣/特徵設為屬性節點
+    const nodes = new vis.DataSet([
+      // 學生節點
+      { id: "N1", label: "Node01\n(3螢幕/Roblox)", group: "student" },
+      { id: "N2", label: "Node02\n(寶可夢)", group: "student" },
+      { id: "N3", label: "Node03\n(沉默/認真)", group: "student" },
+      { id: "N4", label: "Node04\n(三角洲/傳說)", group: "student" },
+      { id: "N5", label: "Node05\n(想當廚師)", group: "student" },
+      { id: "N6", label: "Node06\n(不常出門)", group: "student" },
+      { id: "N7", label: "Node07\n(童軍/露營)", group: "student" },
+
+      // 共通屬性節點 (作為樞紐)
+      { id: "T_IG", label: "Instagram", group: "trait" },
+      { id: "T_STAR", label: "星座", group: "trait" },
+      { id: "T_GAME", label: "重度遊戲", group: "trait" }
+    ]);
+
+    // 2. 定義連線陣列 (Edges)
+    const edges = new vis.DataSet([
+      // 人際關係連線
+      { from: "N1", to: "N2", label: "Familiar", color: { color: "#4af626" }, dashes: true },
+
+      // 屬性映射 - IG (Node 1, 4, 5)
+      { from: "N1", to: "T_IG" },
+      { from: "N4", to: "T_IG" },
+      { from: "N5", to: "T_IG" },
+
+      // 屬性映射 - 星座 (Node 1, 5)
+      { from: "N1", to: "T_STAR" },
+      { from: "N5", to: "T_STAR" },
+
+      // 屬性映射 - 遊戲傾向 (Node 1, 2, 4)
+      { from: "N1", to: "T_GAME" },
+      { from: "N2", to: "T_GAME" },
+      { from: "N4", to: "T_GAME" }
+    ]);
+
+    // 3. 取得容器與配置參數
+    const container = document.getElementById("network-container");
+    const data = { nodes: nodes, edges: edges };
+    const options = {
+      nodes: {
+        shape: "dot",
+        size: 16,
+        font: { 
+          color: "#ffffff", 
+          face: "monospace",
+          size: 14,
+          vadjust: -5
+        },
+        borderWidth: 2
+      },
+      groups: {
+        student: { 
+          color: { background: "#2b2b2b", border: "#e0e0e0", highlight: { background: "#4af626", border: "#ffffff" } }
+        },
+        trait: { 
+          color: { background: "#1a1a1a", border: "#666666" },
+          shape: "diamond",
+          size: 12,
+          font: { color: "#888888", size: 12 }
+        }
+      },
+      edges: {
+        color: "#444444",
+        width: 1.5,
+        smooth: { type: "continuous" }
+      },
+      physics: {
+        // 使用 Force Atlas 2 演算法處理力學排斥與引力
+        forceAtlas2Based: { 
+          gravitationalConstant: -70,
+          centralGravity: 0.01,
+          springLength: 120,
+          springConstant: 0.05
+        },
+        maxVelocity: 50,
+        solver: "forceAtlas2Based",
+        timestep: 0.35,
+        stabilization: { iterations: 150 }
+      },
+      interaction: {
+        hover: true,
+        tooltipDelay: 200
+      }
+    };
+
+    // 4. 初始化網路圖
+    const network = new vis.Network(container, data, options);
+  </script>
+</body>
+</html>
