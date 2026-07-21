@@ -22,8 +22,23 @@ export class GraphController {
         const linksArray = [];
         const traitCounts = {};
 
+        const existingNodes = new Map();
+        if (this.renderer && this.renderer.instance) {
+            const currentGraphData = this.renderer.instance.graphData();
+            if (currentGraphData && currentGraphData.nodes) {
+                currentGraphData.nodes.forEach(n => existingNodes.set(n.id, n));
+            }
+        }
+
         data.forEach(n => {
-            nodesMap.set(n.id, { id: n.id, label: n.name || n.id, group: n.id === 'SYS_ADMIN' ? 'admin' : 'student' });
+            const newNode = { id: n.id, label: n.name || n.id, group: n.id === 'SYS_ADMIN' ? 'admin' : 'student' };
+            if (existingNodes.has(n.id)) {
+                const old = existingNodes.get(n.id);
+                ['x', 'y', 'z', 'vx', 'vy', 'vz'].forEach(prop => {
+                    if (old[prop] !== undefined) newNode[prop] = old[prop];
+                });
+            }
+            nodesMap.set(n.id, newNode);
         });
 
         data.forEach(n => {
@@ -41,12 +56,20 @@ export class GraphController {
         });
 
         Object.keys(traitCounts).forEach(t => {
-            nodesMap.set('T_' + t, { 
-                id: 'T_' + t, 
+            const traitId = 'T_' + t;
+            const newNode = { 
+                id: traitId, 
                 label: t, 
                 group: 'trait', 
                 size: GRAPH_CONFIG.sizes.nodes.minTrait + (traitCounts[t] * GRAPH_CONFIG.sizes.nodes.traitMultiplier) 
-            });
+            };
+            if (existingNodes.has(traitId)) {
+                const old = existingNodes.get(traitId);
+                ['x', 'y', 'z', 'vx', 'vy', 'vz'].forEach(prop => {
+                    if (old[prop] !== undefined) newNode[prop] = old[prop];
+                });
+            }
+            nodesMap.set(traitId, newNode);
         });
 
         return { nodesArray: Array.from(nodesMap.values()), linksArray };

@@ -3,50 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Node_Core // System Root</title>
+    <title>Enterprise Knowledge Graph</title>
     
     <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./css/table.css">
     
-    <script src="https://unpkg.com/three"></script>
-    <script src="https://unpkg.com/3d-force-graph"></script>
-    <script src="https://unpkg.com/three-spritetext"></script>
+    <!-- Modern Enterprise Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Bulletproof Global Dependencies -->
+    <script src="https://unpkg.com/three@0.136.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three-spritetext@1.6.5/dist/three-spritetext.min.js"></script>
+    <script src="https://unpkg.com/3d-force-graph@1.73.3/dist/3d-force-graph.min.js"></script>
+    <!-- Error Display (Debug) -->
+    <div id="debug-errors" style="position:fixed; z-index:9999; bottom:0; left:0; background:rgba(255,0,0,0.8); color:white; padding:10px; font-family:monospace; white-space:pre-wrap; width:100%; display:none; max-height: 40vh; overflow-y: auto;"></div>
+    <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            var debugEl = document.getElementById('debug-errors');
+            debugEl.style.display = 'block';
+            debugEl.innerHTML += 'ERROR: ' + msg + '\\nURL: ' + url + '\\nLine: ' + lineNo + ':' + columnNo + '\\n';
+            if (error && error.stack) debugEl.innerHTML += error.stack + '\\n\\n';
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            var debugEl = document.getElementById('debug-errors');
+            debugEl.style.display = 'block';
+            debugEl.innerHTML += 'UNHANDLED PROMISE REJECTION: ' + (event.reason ? event.reason.stack || event.reason : event) + '\\n\\n';
+        });
+    </script>
 </head>
 <body>
+    <!-- Top Navbar -->
     <nav id="sys-nav">
+        <div class="nav-brand">Enterprise Graph Platform</div>
         <div class="nav-links">
-            <a class="active">NODE_TOPOLOGY</a>
+            <a href="#" class="active" id="nav-network">KNOWLEDGE GRAPH</a>
+            <a href="#" id="nav-table">TABLE VIEW</a>
         </div>
-        <div>
-            <a class="sys-btn" id="btn-export">[ EXPORT_DATA ]</a>
-        </div>
+        <button id="btn-export" class="sys-btn">[ EXPORT ]</button>
     </nav>
-
-    <div id="app-root"></div>
-
-    <template id="tpl-network-view">
+    
+    <!-- Main Workspace -->
+    <main id="app-root">
+        <!-- 3D Graph Container -->
         <div id="network-container"></div>
-    </template>
-
-    <template id="tpl-edit-modal">
-        <div id="edit-modal">
-            <div class="modal-content">
-                <div class="modal-header">TARGET: <span id="modal-node-name">UNKNOWN</span></div>
-                <div style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 10px;">> CURRENT_TRAITS:</div>
-                <div class="tag-list" id="modal-tag-list"></div>
-                
-                <div class="input-group">
-                    <input type="text" id="new-trait-input" placeholder="Enter new trait...">
-                    <button id="btn-add-trait">ADD</button>
-                </div>
-
-                <div class="modal-actions">
-                    <button id="btn-cancel">[ CANCEL ]</button>
-                    <button id="btn-commit" style="border-color: var(--highlight); color: var(--highlight);">[ COMMIT ]</button>
-                </div>
+        
+        <!-- Left Sidebar (Stats & Legend) -->
+        <aside id="sidebar-left" class="sys-panel">
+            <div id="panel-stats">
+                <h3>STATISTICS</h3>
+                <div class="stat-item"><span>Loading...</span></div>
             </div>
-        </div>
-    </template>
+            
+            <div id="panel-legend" style="margin-top: 30px;">
+                <h3>LEGEND</h3>
+                <div class="legend-item"><div class="legend-box cat"></div> Category Hub</div>
+                <div class="legend-item"><div class="legend-box tag"></div> Trait Tag</div>
+                <div class="legend-item"><div class="legend-dot user-admin"></div> Admin User</div>
+                <div class="legend-item"><div class="legend-dot user-std"></div> Standard User</div>
+                
+                <h4 style="margin-top:15px; color:#666; font-size:0.75em;">EDGE TYPES</h4>
+                <div class="legend-item"><div class="legend-line belong"></div> BelongCategory</div>
+                <div class="legend-item"><div class="legend-line has"></div> HasTag</div>
+                <div class="legend-item"><div class="legend-line sim"></div> Similarity</div>
+            </div>
+        </aside>
 
+        <!-- Right Sidebar (Hover Panel) -->
+        <aside id="sidebar-right" class="sys-panel right">
+            <div id="panel-hover" style="display: none;">
+                <!-- Dynamically populated by Interaction.js -->
+            </div>
+        </aside>
+    </main>
+
+    <!-- App Entry -->
     <script type="module" src="./js/app.js"></script>
 </body>
 </html>

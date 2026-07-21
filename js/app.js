@@ -1,43 +1,63 @@
-import { nodeStore } from './store.js';
+import { graphStore } from './core/Store.js';
 import { DataProvider } from './provider.js';
-import { GraphController } from './controller.js';
-import { ModalController } from './modal.js';
+import { Renderer3D } from './renderer/Renderer3D.js';
+import { Sidebar } from './ui/Sidebar.js';
+import { InteractionCtrl } from './ui/Interaction.js';
+import { TableView } from './ui/TableView.js';
 
-class Application {
+class EnterpriseGraphApp {
     static async boot() {
-        // 1. 初始化 DOM 與依賴尋找
-        const appRoot = document.getElementById('app-root');
-        const graphTpl = document.getElementById('tpl-network-view');
-        appRoot.appendChild(graphTpl.content.cloneNode(true));
+        console.log('[SYS] Booting Enterprise Knowledge Graph...');
         
+        // 1. Setup UI Shell
         const containerEl = document.getElementById('network-container');
-
-        // 2. 實例化 UI 控制器 (注入依賴)
-        const modalCtrl = new ModalController('tpl-edit-modal', document.body);
-        const graphCtrl = new GraphController(containerEl, (nodeId) => {
-            modalCtrl.open(nodeId);
-        });
-
-        // 3. 綁定按鈕
-        document.getElementById('btn-export').addEventListener('click', () => {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(nodeStore.getAll(), null, 2));
-            const a = document.createElement('a');
-            a.href = dataStr; a.download = "nodes.json";
-            a.click();
-        });
         
-        // 4. 綁定事件總線 (SSOT 單向資料流)
-        nodeStore.addEventListener('store_updated', (e) => {
-            DataProvider.save(e.detail);
-            graphCtrl.render(e.detail); 
+        // 2. Init Modules
+        const renderer = new Renderer3D(containerEl);
+        const sidebar = new Sidebar(graphStore);
+        const interaction = new InteractionCtrl(renderer);
+        const tableView = new TableView(graphStore);
+
+        // 2.5 Setup Navigation
+        const navNet = document.getElementById('nav-network');
+        const navTable = document.getElementById('nav-table');
+        
+        navNet.addEventListener('click', (e) => {
+            e.preventDefault();
+            navNet.classList.add('active'); navTable.classList.remove('active');
+            containerEl.style.display = 'block';
+            document.getElementById('sidebar-left').style.display = 'block';
+            document.getElementById('sidebar-right').style.display = 'block';
+            tableView.hide();
+        });
+        navTable.addEventListener('click', (e) => {
+            e.preventDefault();
+            navTable.classList.add('active'); navNet.classList.remove('active');
+            containerEl.style.display = 'none';
+            document.getElementById('sidebar-left').style.display = 'none';
+            document.getElementById('sidebar-right').style.display = 'none';
+            tableView.show();
         });
 
-        // 5. 系統點火
-        const initialData = await DataProvider.load();
-        nodeStore.hydrate(initialData);
+        // 3. Bind Store Updates to Renderer
+        graphStore.addEventListener('graph_updated', (e) => {
+            renderer.updateData(e.detail);
+        });
+
+        // 4. Initial Render Setup
+        renderer.init({ nodes: [], links: [] });
+
+        // 5. Load Data & Hydrate
+        try {
+            const rawData = await DataProvider.load();
+            graphStore.hydrate(rawData);
+            console.log('[SYS] Graph Hydrated successfully.');
+        } catch(err) {
+            console.error('[SYS] Failed to load graph data:', err);
+        }
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    Application.boot();
+    EnterpriseGraphApp.boot();
 });

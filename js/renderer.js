@@ -14,13 +14,29 @@ export class GraphRenderer {
             .nodeResolution(GRAPH_CONFIG.sizes.resolution)
             .nodeColor(n => n.group === 'admin' ? GRAPH_CONFIG.colors.nodes.admin : (n.group === 'student' ? GRAPH_CONFIG.colors.nodes.student : GRAPH_CONFIG.colors.nodes.default))
             .nodeVal(n => n.group === 'admin' ? GRAPH_CONFIG.sizes.nodes.admin : (n.group === 'student' ? GRAPH_CONFIG.sizes.nodes.student : n.size || 3))
-            .nodeThreeObjectExtend(true)
+            .nodeThreeObjectExtend(node => node.group !== 'trait')
             .nodeThreeObject(node => {
                 try {
                     const sprite = new SpriteText(node.label || 'Unknown');
-                    sprite.color = node.group === 'admin' ? GRAPH_CONFIG.colors.text.admin : GRAPH_CONFIG.colors.text.default;
-                    sprite.textHeight = node.group === 'admin' ? GRAPH_CONFIG.sizes.text.admin : GRAPH_CONFIG.sizes.text.default;
-                    sprite.position.y = node.group === 'admin' ? GRAPH_CONFIG.sizes.textOffset.admin : (node.group === 'student' ? GRAPH_CONFIG.sizes.textOffset.student : GRAPH_CONFIG.sizes.textOffset.default);
+                    
+                    if (node.group === 'trait') {
+                        sprite.color = '#888888';
+                        sprite.textHeight = node.size ? Math.max(4, node.size * 2) : 4;
+                    } else {
+                        sprite.color = node.group === 'admin' ? GRAPH_CONFIG.colors.text.admin : GRAPH_CONFIG.colors.text.default;
+                        sprite.textHeight = node.group === 'admin' ? GRAPH_CONFIG.sizes.text.admin : GRAPH_CONFIG.sizes.text.default;
+                        
+                        const sphereSize = node.group === 'admin' ? GRAPH_CONFIG.sizes.nodes.admin : (node.group === 'student' ? GRAPH_CONFIG.sizes.nodes.student : (node.size || 3));
+                        sprite.position.y = - (Math.cbrt(sphereSize) * 2.5 + 4); 
+                    }
+                    
+                    // Professional Clean Text Styling (No bulky boxes)
+                    sprite.backgroundColor = 'transparent';
+                    sprite.borderColor = 'transparent';
+                    sprite.strokeWidth = 0.5;
+                    sprite.strokeColor = '#000000';
+                    sprite.fontWeight = 'normal';
+                    
                     return sprite;
                 } catch(e) { return false; }
             })
@@ -31,19 +47,26 @@ export class GraphRenderer {
                 if (node.group !== 'trait' && onNodeClick) onNodeClick(node.id);
             });
 
-        let angle = 0;
-        const animate = () => {
+        // Professional Physics Tweaks: Spread out nodes
+        this.instance.d3Force('charge').strength(-250);
+        this.instance.d3Force('link').distance(80);
+
+        // Add Window Resize Listener
+        window.addEventListener('resize', () => {
             if (this.instance) {
-                this.instance.cameraPosition({ 
-                    x: GRAPH_CONFIG.physics.cameraRadius * Math.sin(angle), 
-                    y: GRAPH_CONFIG.physics.cameraHeight, 
-                    z: GRAPH_CONFIG.physics.cameraRadius * Math.cos(angle) 
-                });
-                angle += GRAPH_CONFIG.physics.rotationSpeed;
+                this.instance.width(this.container.clientWidth);
+                this.instance.height(this.container.clientHeight);
             }
-            this.rafId = requestAnimationFrame(animate);
-        };
-        animate();
+        });
+
+        // Use built-in autoRotate instead of manual camera forcing to restore user mouse interaction
+        setTimeout(() => {
+            const controls = this.instance.controls();
+            if (controls) {
+                controls.autoRotate = true;
+                controls.autoRotateSpeed = 0.5;
+            }
+        }, 100);
     }
 
     updateData(nodes, links) {
