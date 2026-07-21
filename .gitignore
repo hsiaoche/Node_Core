@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# npm (if used later)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Logs
+logs
+*.log

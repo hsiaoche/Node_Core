@@ -1,12 +1,12 @@
 export class DataProvider {
     static async load() {
-        const cached = localStorage.getItem('v8_node_data');
+        const cached = localStorage.getItem('node_core_data');
         if (cached) {
             try { 
                 return JSON.parse(cached); 
             } catch(e) {
                 console.error("[SYS_ERROR] Local cache corrupted. Purging data.", e);
-                localStorage.removeItem('v8_node_data');
+                localStorage.removeItem('node_core_data');
             }
         }
         
@@ -27,7 +27,7 @@ export class DataProvider {
     }
 
     static save(dataArray) {
-        localStorage.setItem('v8_node_data', JSON.stringify(dataArray));
+        localStorage.setItem('node_core_data', JSON.stringify(dataArray));
     }
 
     static generateMock() {

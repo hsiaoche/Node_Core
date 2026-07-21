@@ -1,9 +1,10 @@
 import { nodeStore } from './store.js';
 
 export class ModalController {
-    constructor() {
-        const tpl = document.getElementById('tpl-edit-modal');
-        document.body.appendChild(tpl.content.cloneNode(true));
+    // 依賴注入：要求傳入模板 ID 與掛載目標
+    constructor(templateId, mountTarget) {
+        const tpl = document.getElementById(templateId);
+        mountTarget.appendChild(tpl.content.cloneNode(true));
 
         this.modalEl = document.getElementById('edit-modal');
         this.titleEl = document.getElementById('modal-node-name');
@@ -22,7 +23,6 @@ export class ModalController {
         document.getElementById('btn-cancel').addEventListener('click', () => this.close());
         document.getElementById('btn-commit').addEventListener('click', () => this._commit());
         
-        // 委派刪除標籤事件
         this.tagListEl.addEventListener('click', (e) => {
             if(e.target.tagName === 'SPAN') {
                 const index = parseInt(e.target.dataset.index, 10);
@@ -50,9 +50,20 @@ export class ModalController {
     }
 
     _renderTags() {
-        this.tagListEl.innerHTML = this.tempTraits.map((t, i) => 
-            `<div class="sys-tag">${t} <span data-index="${i}">×</span></div>`
-        ).join('');
+        // [安全修正] 棄用 innerHTML，改用 DOM API 避免 XSS 注入攻擊
+        this.tagListEl.innerHTML = ''; 
+        this.tempTraits.forEach((trait, index) => {
+            const tagDiv = document.createElement('div');
+            tagDiv.className = 'sys-tag';
+            tagDiv.appendChild(document.createTextNode(trait + ' '));
+
+            const closeSpan = document.createElement('span');
+            closeSpan.dataset.index = index;
+            closeSpan.textContent = '×';
+            
+            tagDiv.appendChild(closeSpan);
+            this.tagListEl.appendChild(tagDiv);
+        });
     }
 
     _addTrait() {

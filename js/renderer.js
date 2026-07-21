@@ -1,3 +1,5 @@
+import { GRAPH_CONFIG } from './config.js';
+
 export class GraphRenderer {
     constructor(containerElement) {
         this.container = containerElement;
@@ -8,22 +10,22 @@ export class GraphRenderer {
     init(nodes, links, onNodeClick) {
         this.instance = ForceGraph3D()(this.container)
             .graphData({ nodes, links })
-            .backgroundColor('#050505')
-            .nodeResolution(32)
-            .nodeColor(n => n.group === 'admin' ? '#ffffff' : (n.group === 'student' ? '#cccccc' : '#444444'))
-            .nodeVal(n => n.group === 'admin' ? 18 : (n.group === 'student' ? 8 : n.size || 3))
+            .backgroundColor(GRAPH_CONFIG.colors.background)
+            .nodeResolution(GRAPH_CONFIG.sizes.resolution)
+            .nodeColor(n => n.group === 'admin' ? GRAPH_CONFIG.colors.nodes.admin : (n.group === 'student' ? GRAPH_CONFIG.colors.nodes.student : GRAPH_CONFIG.colors.nodes.default))
+            .nodeVal(n => n.group === 'admin' ? GRAPH_CONFIG.sizes.nodes.admin : (n.group === 'student' ? GRAPH_CONFIG.sizes.nodes.student : n.size || 3))
             .nodeThreeObjectExtend(true)
             .nodeThreeObject(node => {
                 try {
                     const sprite = new SpriteText(node.label || 'Unknown');
-                    sprite.color = node.group === 'admin' ? '#ffffff' : '#aaaaaa';
-                    sprite.textHeight = node.group === 'admin' ? 6 : 3;
-                    sprite.position.y = node.group === 'admin' ? 22 : (node.group === 'student' ? 12 : 6);
+                    sprite.color = node.group === 'admin' ? GRAPH_CONFIG.colors.text.admin : GRAPH_CONFIG.colors.text.default;
+                    sprite.textHeight = node.group === 'admin' ? GRAPH_CONFIG.sizes.text.admin : GRAPH_CONFIG.sizes.text.default;
+                    sprite.position.y = node.group === 'admin' ? GRAPH_CONFIG.sizes.textOffset.admin : (node.group === 'student' ? GRAPH_CONFIG.sizes.textOffset.student : GRAPH_CONFIG.sizes.textOffset.default);
                     return sprite;
                 } catch(e) { return false; }
             })
-            .linkColor(() => 'rgba(255, 255, 255, 0.15)')
-            .linkWidth(1.5)
+            .linkColor(() => GRAPH_CONFIG.colors.link)
+            .linkWidth(GRAPH_CONFIG.sizes.linkWidth)
             .showNavInfo(false)
             .onNodeClick(node => {
                 if (node.group !== 'trait' && onNodeClick) onNodeClick(node.id);
@@ -32,8 +34,12 @@ export class GraphRenderer {
         let angle = 0;
         const animate = () => {
             if (this.instance) {
-                this.instance.cameraPosition({ x: 250 * Math.sin(angle), y: 200, z: 250 * Math.cos(angle) });
-                angle += Math.PI / 2000;
+                this.instance.cameraPosition({ 
+                    x: GRAPH_CONFIG.physics.cameraRadius * Math.sin(angle), 
+                    y: GRAPH_CONFIG.physics.cameraHeight, 
+                    z: GRAPH_CONFIG.physics.cameraRadius * Math.cos(angle) 
+                });
+                angle += GRAPH_CONFIG.physics.rotationSpeed;
             }
             this.rafId = requestAnimationFrame(animate);
         };

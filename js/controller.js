@@ -1,9 +1,10 @@
 import { GraphRenderer } from './renderer.js';
+import { GRAPH_CONFIG } from './config.js';
 
 export class GraphController {
-    constructor(containerId, onNodeClickCallback) {
-        const container = document.getElementById(containerId);
-        this.renderer = new GraphRenderer(container);
+    // 依賴注入：containerElement 由外部提供
+    constructor(containerElement, onNodeClickCallback) {
+        this.renderer = new GraphRenderer(containerElement);
         this.onNodeClick = onNodeClickCallback;
     }
 
@@ -40,7 +41,12 @@ export class GraphController {
         });
 
         Object.keys(traitCounts).forEach(t => {
-            nodesMap.set('T_' + t, { id: 'T_' + t, label: t, group: 'trait', size: 4 + (traitCounts[t] * 1.5) });
+            nodesMap.set('T_' + t, { 
+                id: 'T_' + t, 
+                label: t, 
+                group: 'trait', 
+                size: GRAPH_CONFIG.sizes.nodes.minTrait + (traitCounts[t] * GRAPH_CONFIG.sizes.nodes.traitMultiplier) 
+            });
         });
 
         return { nodesArray: Array.from(nodesMap.values()), linksArray };
