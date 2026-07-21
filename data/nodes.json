@@ -2,48 +2,64 @@
   {
     "id": "SYS_ADMIN",
     "name": "Admin_Unit",
+    "alias": "Teacher",
+    "runtime_status": "Core_Controller",
     "traits": ["核心系統", "露營", "IG", "獨旅", "機車", "傳說對決"],
     "familiar_with": ["N1", "N2", "N3", "N4", "N5", "N6", "N7"]
   },
   {
     "id": "N1",
     "name": "Node01",
+    "alias": "B",
+    "runtime_status": "High_Frequency_Interference",
     "traits": ["Roblox", "朋友男娘", "3螢幕", "Discord", "IG", "星座", "傳說對決"],
     "familiar_with": ["N2"]
   },
   {
     "id": "N2",
     "name": "Node02",
+    "alias": "C",
+    "runtime_status": "Silent_Computation",
     "traits": ["寶可夢"],
     "familiar_with": ["N1"]
   },
   {
     "id": "N3",
     "name": "Node03",
+    "alias": "E",
+    "runtime_status": "Asynchronous_Sandbox",
     "traits": ["沈默", "認真寫考卷"],
     "familiar_with": []
   },
   {
     "id": "N4",
     "name": "Node04",
+    "alias": "A",
+    "runtime_status": "Sleep_Mode",
     "traits": ["腳踏車", "獨旅", "FPS", "傳說對決", "IG"],
     "familiar_with": ["N7"]
   },
   {
     "id": "N5",
     "name": "Node05",
+    "alias": "F",
+    "runtime_status": "High_Affinity_Auxiliary",
     "traits": ["去澎湖", "想當廚師", "星座", "IG", "傳說對決"],
     "familiar_with": []
   },
   {
     "id": "N6",
     "name": "Node06",
+    "alias": "D",
+    "runtime_status": "Silent_Computation",
     "traits": ["不常出去玩"],
     "familiar_with": []
   },
   {
     "id": "N7",
     "name": "Node07",
+    "alias": "G",
+    "runtime_status": "Proxy_Server_Active",
     "traits": ["露營", "童軍", "兄弟", "機車", "電機", "FPS", "傳說對決"],
     "familiar_with": ["N4"]
   }
