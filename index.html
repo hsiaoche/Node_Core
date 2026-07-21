@@ -37,12 +37,12 @@
 <body>
     <!-- Top Navbar -->
     <nav id="sys-nav">
-        <div class="nav-brand">Enterprise Graph Platform</div>
+        <div class="nav-brand">企業知識圖譜平台</div>
         <div class="nav-links">
-            <a href="#" class="active" id="nav-network">KNOWLEDGE GRAPH</a>
-            <a href="#" id="nav-table">TABLE VIEW</a>
+            <a href="#" class="active" id="nav-network">知識圖譜</a>
+            <a href="#" id="nav-table">表格檢視</a>
         </div>
-        <button id="btn-export" class="sys-btn">[ EXPORT ]</button>
+        <button id="btn-export" class="sys-btn">[ 匯出資料 ]</button>
     </nav>
     
     <!-- Main Workspace -->
@@ -52,22 +52,25 @@
         
         <!-- Left Sidebar (Stats & Legend) -->
         <aside id="sidebar-left" class="sys-panel">
+            <button id="btn-toggle-sidebar" class="panel-toggle" title="隱藏/顯示側邊欄">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
             <div id="panel-stats">
-                <h3>STATISTICS</h3>
-                <div class="stat-item"><span>Loading...</span></div>
+                <h3>系統統計</h3>
+                <div class="stat-item"><span>載入中...</span></div>
             </div>
             
             <div id="panel-legend" style="margin-top: 30px;">
-                <h3>LEGEND</h3>
-                <div class="legend-item"><div class="legend-box cat"></div> Category Hub</div>
-                <div class="legend-item"><div class="legend-box tag"></div> Trait Tag</div>
-                <div class="legend-item"><div class="legend-dot user-admin"></div> Admin User</div>
-                <div class="legend-item"><div class="legend-dot user-std"></div> Standard User</div>
+                <h3>圖例</h3>
+                <div class="legend-item"><div class="legend-box cat"></div> 分類核心</div>
+                <div class="legend-item"><div class="legend-box tag"></div> 特質標籤</div>
+                <div class="legend-item"><div class="legend-dot user-admin"></div> 管理員</div>
+                <div class="legend-item"><div class="legend-dot user-std"></div> 一般使用者</div>
                 
-                <h4 style="margin-top:15px; color:#666; font-size:0.75em;">EDGE TYPES</h4>
-                <div class="legend-item"><div class="legend-line belong"></div> BelongCategory</div>
-                <div class="legend-item"><div class="legend-line has"></div> HasTag</div>
-                <div class="legend-item"><div class="legend-line sim"></div> Similarity</div>
+                <h4 style="margin-top:15px; color:var(--text-muted); font-size:0.75em;">關聯類型</h4>
+                <div class="legend-item"><div class="legend-line belong"></div> 分類歸屬</div>
+                <div class="legend-item"><div class="legend-line has"></div> 擁有標籤</div>
+                <div class="legend-item"><div class="legend-line sim"></div> 相似度關聯</div>
             </div>
         </aside>
 

@@ -6,17 +6,17 @@ export class TableView {
         this.container.style.display = 'none';
         this.container.innerHTML = `
             <div style="padding: 40px;">
-                <h2>Table Maintenance</h2>
+                <h2>資料表格維護</h2>
                 <div class="table-wrapper">
                     <table id="sys-table">
                         <thead>
                             <tr>
-                                <th>Type</th>
-                                <th>ID</th>
-                                <th>Name / Alias</th>
-                                <th>Degree</th>
-                                <th>Community</th>
-                                <th>Actions</th>
+                                <th>類型</th>
+                                <th>識別碼</th>
+                                <th>名稱 / 暱稱</th>
+                                <th>關聯度</th>
+                                <th>社群</th>
+                                <th>操作</th>
                             </tr>
                         </thead>
                         <tbody id="sys-table-body"></tbody>
@@ -52,7 +52,7 @@ export class TableView {
                     <td>${node.name || '-'} ${node.alias ? '('+node.alias+')' : ''}</td>
                     <td>${node.degree || 0}</td>
                     <td>${node.community || '-'}</td>
-                    <td><button class="sys-btn" disabled>Edit</button></td>
+                    <td><button class="sys-btn" disabled>編輯</button></td>
                 </tr>
             `;
         });

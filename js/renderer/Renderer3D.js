@@ -59,12 +59,19 @@ export class Renderer3D {
                     // Professional Clean Text Styling
                     sprite.backgroundColor = 'transparent';
                     sprite.borderColor = 'transparent';
-                    sprite.strokeWidth = node.type === 'user' ? 0 : 0.5;
-                    sprite.strokeColor = '#000000';
+                    sprite.strokeWidth = 0; // Remove stroke completely for clean minimalist look
                     sprite.fontWeight = node.type === 'category' ? 'bold' : 'normal';
+                    sprite.fontFace = '"Inter", "Segoe UI", sans-serif'; // Modern font
                     
-                    // Position label below or above based on type
-                    sprite.position.y = node.type === 'category' ? 15 : (node.type === 'tag' ? 8 : -8);
+                    // Position label dynamically so it NEVER overlaps with the node
+                    if (node.type === 'category') {
+                        sprite.position.y = 12; // Above the 10x10 cube
+                    } else if (node.type === 'tag') {
+                        sprite.position.y = (Math.min(Math.max(node.size * 1.5, 3), 15)) + 4; // Above the octahedron
+                    } else {
+                        const s = Math.max(node.degree * 2, 4);
+                        sprite.position.y = -(s + 5); // Below the sphere
+                    }
                     
                     // Save reference to toggle visibility later
                     node.__sprite = sprite;

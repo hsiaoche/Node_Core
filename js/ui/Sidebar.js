@@ -25,12 +25,12 @@ export class Sidebar {
         }
 
         this.statsPanel.innerHTML = `
-            <h3>STATISTICS</h3>
-            <div class="stat-item"><span>Total Categories:</span> <span>${catCount}</span></div>
-            <div class="stat-item"><span>Total Tags:</span> <span>${tagCount}</span></div>
-            <div class="stat-item"><span>Total Users:</span> <span>${userCount}</span></div>
-            <div class="stat-item"><span>Total Edges:</span> <span>${links.length}</span></div>
-            <div class="stat-item"><span>Avg User Degree:</span> <span>${avgDegree}</span></div>
+            <h3>系統統計</h3>
+            <div class="stat-item"><span>總分類數:</span> <span>${catCount}</span></div>
+            <div class="stat-item"><span>總標籤數:</span> <span>${tagCount}</span></div>
+            <div class="stat-item"><span>總使用者數:</span> <span>${userCount}</span></div>
+            <div class="stat-item"><span>總關聯數:</span> <span>${links.length}</span></div>
+            <div class="stat-item"><span>平均關聯度:</span> <span>${avgDegree}</span></div>
         `;
     }
 }

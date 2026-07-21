@@ -21,21 +21,27 @@ class EnterpriseGraphApp {
         // 2.5 Setup Navigation
         const navNet = document.getElementById('nav-network');
         const navTable = document.getElementById('nav-table');
+        const sidebarLeft = document.getElementById('sidebar-left');
+        const sidebarRight = document.getElementById('sidebar-right');
+        
+        document.getElementById('btn-toggle-sidebar').addEventListener('click', () => {
+            sidebarLeft.classList.toggle('collapsed');
+        });
         
         navNet.addEventListener('click', (e) => {
             e.preventDefault();
             navNet.classList.add('active'); navTable.classList.remove('active');
             containerEl.style.display = 'block';
-            document.getElementById('sidebar-left').style.display = 'block';
-            document.getElementById('sidebar-right').style.display = 'block';
+            sidebarLeft.style.display = 'block';
+            sidebarRight.style.display = 'block';
             tableView.hide();
         });
         navTable.addEventListener('click', (e) => {
             e.preventDefault();
             navTable.classList.add('active'); navNet.classList.remove('active');
             containerEl.style.display = 'none';
-            document.getElementById('sidebar-left').style.display = 'none';
-            document.getElementById('sidebar-right').style.display = 'none';
+            sidebarLeft.style.display = 'none';
+            sidebarRight.style.display = 'none';
             tableView.show();
         });
 

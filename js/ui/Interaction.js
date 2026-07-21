@@ -16,21 +16,17 @@ export class InteractionCtrl {
 
         this.hoverPanel.style.display = 'block';
         
-        let content = `<h3>${node.name || node.id}</h3>`;
-        content += `<div class="hover-type">${node.type.toUpperCase()}</div>`;
-        
-        if (node.type === 'user') {
-            content += `<p><strong>Degree:</strong> ${node.degree || 0}</p>`;
-            content += `<p><strong>Community:</strong> ${node.community || 'N/A'}</p>`;
-            content += `<p><strong>Status:</strong> ${node.status || 'N/A'}</p>`;
-            content += `<p><strong>Traits:</strong> ${(node.traits || []).join(', ')}</p>`;
-        } else if (node.type === 'tag') {
-            content += `<p><strong>Category:</strong> ${node.category}</p>`;
-            content += `<p><strong>Users Count:</strong> ${node.size}</p>`;
-        } else if (node.type === 'category') {
-            content += `<p><strong>Total Tags/Users:</strong> ${node.size}</p>`;
-        }
-
-        this.hoverPanel.innerHTML = content;
+        this.hoverPanel.innerHTML = `
+            <span class="hover-type">${node.type.toUpperCase()}</span>
+            <h3>${node.name || node.id}</h3>
+            ${node.alias ? `<p><strong>暱稱:</strong> ${node.alias}</p>` : ''}
+            <p><strong>識別碼:</strong> ${node.id}</p>
+            ${node.community ? `<p><strong>所屬社群:</strong> ${node.community}</p>` : ''}
+            
+            <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.1);">
+                <p><strong>連線數 (Degree):</strong> ${node.degree || 0}</p>
+                ${node.size ? `<p><strong>成員數 (Size):</strong> ${node.size}</p>` : ''}
+            </div>
+        `;
     }
 }
