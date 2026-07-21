@@ -2,9 +2,28 @@ export class DataProvider {
     static async load() {
         const cached = localStorage.getItem('v8_node_data');
         if (cached) {
-            try { return JSON.parse(cached); } catch(e) {}
+            try { 
+                return JSON.parse(cached); 
+            } catch(e) {
+                console.error("[SYS_ERROR] Local cache corrupted. Purging data.", e);
+                localStorage.removeItem('v8_node_data');
+            }
         }
-        return this.generateMock(); // 展示用，預設直接降級為 Mock
+        
+        try {
+            const response = await fetch('./data/nodes.json');
+            if (response.ok) {
+                const data = await response.json();
+                this.save(data);
+                return data;
+            } else {
+                console.error("[SYS_ERROR] Failed to fetch nodes.json. Status:", response.status);
+            }
+        } catch(e) {
+            console.error("[SYS_ERROR] Fetch error:", e);
+        }
+
+        return this.generateMock();
     }
 
     static save(dataArray) {
